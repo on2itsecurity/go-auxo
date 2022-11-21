@@ -1,9 +1,8 @@
 # Introduction
 
 This repository contains an AUXO API wrapper in GO.
-AUXO API documentation: https://api.on2it.net/v3/doc
 
-[[_TOC_]]
+AUXO API documentation: https://api.on2it.net/v3/doc
 
 ## Versions
 
