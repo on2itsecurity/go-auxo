@@ -26,7 +26,7 @@ go mod init github.com/projectname
 Add the API module to `go.mod`, it is recommended to specificly specify the version
 
 ```go
-module gitlab.on2it.net/projectname
+module github.com/projectname
 
 go 1.19
 
