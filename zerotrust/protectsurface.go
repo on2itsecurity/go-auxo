@@ -35,7 +35,7 @@ type ProtectSurface struct {
 
 // Flow contains the policy for the flow
 type Flow struct {
-	Allow bool `json:"allow,omitempty"` //Is the flow allowed or not.
+	Allow bool `json:"allow"` //Is the flow allowed or not.
 }
 
 // MeasureState contains the measure assignment, implementation, Evideance and Acceptance
