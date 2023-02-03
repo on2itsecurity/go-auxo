@@ -13,7 +13,7 @@ type State struct {
 	UniquenessKey    string    `json:"uniqueness_key,omitempty"`      //Key to prevent duplicates, especially in parallel processing, can be set manually
 	Description      string    `json:"description,omitempty"`         //Good practice to set a description, since multiple states of the same type can be attached to a Protect Surface
 	ProtectSurface   string    `json:"protectsurface_id"`             //Attached protect surface ID (mandatory)
-	ContentType      string    `json:"content_type" defailt:"ipv4"`   //Contect Type: `ipv4`, `ipv6`, `azure_cloud`, `aws_cloud`, `gcp_cloud`, `container`, `hostname`, `user_identity`
+	ContentType      string    `json:"content_type" default:"ipv4"`   //Contect Type: `ipv4`, `ipv6`, `azure_cloud`, `aws_cloud`, `gcp_cloud`, `container`, `hostname`, `user_identity`
 	Location         string    `json:"location_id"`                   //Attaced location ID (mandatory)
 	ExistsOnAssetIDs []string  `json:"exists_on_asset_ids,omitempty"` //IDs of the managed assets providing this information
 	Maintainer       string    `json:"maintainer,omitempty"`          //Either: `portal_manual` or `api``
