@@ -28,6 +28,7 @@ type Questions struct {
 
 // ReadinessAnswers is the body for the post request
 type ReadinessAnswers struct {
+	ID          string   `json:"id,omitempty"`         // The ID of the assessment
 	Timestamp   int64    `json:"assessment_timestamp"` // The timestamp of the assessment in Unix time
 	Version     int      `json:"version"`              // The version of the questions (see ReadinessQuestions)
 	Strategical []Answer `json:"strategical"`          // The strategical answers
@@ -45,10 +46,16 @@ type Scope struct {
 type Answer struct {
 	QuestionID string `json:"question_id"`      // The ID of the question (zee ReadinessQuestions)
 	Actual     int    `json:"actual"`           // The actual condition (1-5 CMMI)
-	Timestamp  int64  `json:"answer_timestamp"` // The timestamp of the answer in Unix time
+	Timestamp  string `json:"answer_timestamp"` // The timestamp of the answer in Unix time
 	AnsweredBy string `json:"answered_by"`      // The e-mail (of the user) who answered the question
 	Goal       int    `json:"goal"`             // The goal/ambition (1-5 CMMI)
 	Comment    string `json:"comment"`          // Additional comment on the answer
+}
+
+// AssessmentSummary holds the summary of the assessments
+type AssessmentSummary struct {
+	ID                  string `json:"id"`                   // The ID of the assessment
+	AssessmentTimestamp int64  `json:"assessment_timestamp"` // The timestamp of the assessment in Unix time
 }
 
 // --- Functions ---
@@ -97,4 +104,96 @@ func (zt *ZeroTrust) PostReadinessAnswers(answers ReadinessAnswers) (*ReadinessA
 	}
 
 	return response[0], nil
+}
+
+// GetAssessmentSummary will return the summary of the assessments
+func (zt *ZeroTrust) GetReadinessAssessmentsSummary() ([]*AssessmentSummary, error) {
+	call := "get-assessments-summary"
+	method := "GET"
+
+	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+
+	if err != nil {
+		return nil, err
+	}
+
+	assessments, err := utils.UnwrapItems[AssessmentSummary](result)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return assessments, nil
+}
+
+// GetAssessments will return all the assessments
+func (zt *ZeroTrust) GetReadinessAssessments() ([]*ReadinessAnswers, error) {
+	call := "get-assessments"
+	method := "GET"
+
+	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+
+	if err != nil {
+		return nil, err
+	}
+
+	assessments, err := utils.UnwrapItems[ReadinessAnswers](result)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return assessments, nil
+}
+
+// GetAssessmentByID will return the assessment with the given ID
+func (zt *ZeroTrust) GetReadinessAssessmentByID(assessmentID string) (*ReadinessAnswers, error) {
+	call := "get-assessment-by-id?id=" + assessmentID
+	method := "GET"
+
+	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+
+	if err != nil {
+		return nil, err
+	}
+
+	assessments, err := utils.UnwrapItems[ReadinessAnswers](result)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return assessments[0], nil
+}
+
+// DeleteAssessmentByID will delete the assessment with the given ID
+func (zt *ZeroTrust) DeleteReadinessAssessmentByID(assessmentID string) error {
+	call := "remove-assessment-by-id?id=" + assessmentID
+	method := "POST"
+
+	_, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteAssessments will delete ALL assessments
+func (zt *ZeroTrust) DeleteReadinessAssessments() error {
+	assessments, err := zt.GetReadinessAssessmentsSummary()
+
+	if err != nil {
+		return err
+	}
+
+	for _, a := range assessments {
+		err := zt.DeleteReadinessAssessmentByID(a.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
