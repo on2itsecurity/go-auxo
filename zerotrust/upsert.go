@@ -20,6 +20,7 @@ type UpsertState struct {
 	Description string    `json:"description,omitempty"`  //Description of the state
 	ContentType string    `json:"content_type,omitempty"` //Contect Type: `ipv4`, `ipv6`, `azure_cloud`, `aws_cloud`, `gcp_cloud`, `container`, `hostname`, `user_identity`
 	Content     *[]string `json:"content,omitempty"`      //The actual content f.e. `["10.10.10.1", "10.10.10.2"]`
+	Maintainer  string    `json:"maintainer,omitempty"`   //Maintainer of the state (f.e. auxo-provider-azure-123)
 }
 
 // --- Functions ---
