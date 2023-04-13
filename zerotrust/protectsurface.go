@@ -195,6 +195,36 @@ func (zt *ZeroTrust) GetProtectSurfaceByID(protectSurfaceID string) (*ProtectSur
 	return protectsurfaces[0], nil
 }
 
+// GetProtectSurfaceByStateTypeAndValue will get a protectsurface by state type and value (i.e. by IP address)
+// Method could either be "ip" or "exact", when "ip" is used, the value will be matched to the most specific matching CIDR.
+// It returns a (single) ProtectSurface object.
+func (zt *ZeroTrust) GetProtectSurfaceByStateTypeAndValue(stateType, match_method, value string) (*ProtectSurface, error) {
+	if match_method != "ip" && match_method != "static" {
+		return nil, fmt.Errorf("Invalid match method: %s (only 'ip' or 'exact' are supported)", match_method)
+	}
+
+	call := fmt.Sprintf("get-protectsurface-by-state-type-and-value-match?match_type=%s&match_method=%s&match_value=%s", stateType, match_method, value)
+	method := "GET"
+
+	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+
+	if err != nil {
+		return nil, err
+	}
+
+	protectsurfaces, err := utils.UnwrapItems[ProtectSurface](result)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !(len(protectsurfaces) > 0) {
+		return nil, fmt.Errorf("No matching protect surface found with state_type=%s, method=%s, value=%s", stateType, match_method, value)
+	}
+
+	return protectsurfaces[0], nil
+}
+
 // GetProtectSurfaces will get all protectsurfaces of the relations (based on used API token)
 // It returns an array with all the ProtectSurface objects.
 func (zt *ZeroTrust) GetProtectSurfaces() ([]*ProtectSurface, error) {
