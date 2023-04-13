@@ -1,3 +1,5 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/on2itsecurity/go-auxo.svg)](https://pkg.go.dev/github.com/on2itsecurity/go-auxo)
+
 # Introduction
 
 This repository contains an AUXO API wrapper in GO.
@@ -5,6 +7,7 @@ This repository contains an AUXO API wrapper in GO.
 AUXO API documentation: https://api.on2it.net/v3/doc
 
 ## Versions
+Only "major" versions are listed here, check the releases/tags for the most current version.
 
 - Version 1.0.0 - First release
 
