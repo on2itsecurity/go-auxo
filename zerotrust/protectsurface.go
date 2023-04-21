@@ -199,7 +199,7 @@ func (zt *ZeroTrust) GetProtectSurfaceByID(protectSurfaceID string) (*ProtectSur
 // Method could either be "ip" or "exact", when "ip" is used, the value will be matched to the most specific matching CIDR.
 // It returns a (single) ProtectSurface object.
 func (zt *ZeroTrust) GetProtectSurfaceByStateTypeAndValue(stateType, match_method, value string) (*ProtectSurface, error) {
-	if match_method != "ip" && match_method != "static" {
+	if !(match_method == "ip" || match_method == "exact") {
 		return nil, fmt.Errorf("Invalid match method: %s (only 'ip' or 'exact' are supported)", match_method)
 	}
 
