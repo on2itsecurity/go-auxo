@@ -43,7 +43,7 @@ type MeasureState struct { //Pointers to prevent posting empty objects (which re
 	Assignment     *Assignment     `json:"assignment,omitempty"`      //Assignment
 	Implementation *Implementation `json:"implementation,omitempty"`  //Implementation
 	Evidence       *Evidence       `json:"evidence,omitempty"`        //Evidence
-	RiskAccptance  *RiskAcceptance `json:"risk_acceptance,omitempty"` //RiskAcceptance
+	RiskAcceptance *RiskAcceptance `json:"risk_acceptance,omitempty"` //RiskAcceptance
 }
 
 // Assignment contains the assignment details
