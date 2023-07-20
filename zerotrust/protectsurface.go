@@ -69,11 +69,11 @@ type Evidence struct {
 
 // RiskAcceptance contains the risk acceptance details
 type RiskAcceptance struct {
-	LastDeterminedByPersonID     string `json:"last_determined_by_person_id,omitempty"`    //E-mail of the person who accepted the risks
-	LastDeterminedTimestamp      int    `json:"last_determined_timestamp,omitempty"`       //Unix time of the acceptance
-	RiskNoImplementationAccepted bool   `json:"risk_no_implementation_accepted,omitempty"` //Is it accepted that there is no validation of the implementation
-	RiskNoEvidenceAccepted       bool   `json:"risk_no_evidence_accepted"`                 //Is it accepted that there is no evidence of a working implementation
-	RiskAcceptedComment          string `json:"risk_accepted_comment"`                     //Why is the risk accepted
+	LastDeterminedByPersonID     string `json:"last_determined_by_person_id,omitempty"` //E-mail of the person who accepted the risks
+	LastDeterminedTimestamp      int    `json:"last_determined_timestamp,omitempty"`    //Unix time of the acceptance
+	RiskNoImplementationAccepted bool   `json:"risk_no_implementation_accepted"`        //Is it accepted that there is no validation of the implementation
+	RiskNoEvidenceAccepted       bool   `json:"risk_no_evidence_accepted"`              //Is it accepted that there is no evidence of a working implementation
+	RiskAcceptedComment          string `json:"risk_accepted_comment"`                  //Why is the risk accepted
 }
 
 // Maturity contains the maturity details
