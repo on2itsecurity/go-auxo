@@ -113,23 +113,24 @@ func (zt *ZeroTrust) GetStateByID(id string) (*State, error) {
 // GetStatesAll will get all states of the relation (based upon used API Token)
 // It returns an array with all the state objects.
 func (zt *ZeroTrust) GetStates() ([]*State, error) {
-	call := "get-states"
-	method := "GET"
-
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
-
-	if err != nil {
-		return nil, err
-
-	}
-
-	states, err := utils.UnwrapItems[State](result)
+	allStates := make([]*State, 0)
+	pss, err := zt.GetProtectSurfaces()
 
 	if err != nil {
 		return nil, err
 	}
 
-	return states, nil
+	for _, ps := range pss {
+		states, err := zt.GetStatesByProtectSurfaceID(ps.ID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		allStates = append(allStates, states...)
+	}
+
+	return allStates, nil
 }
 
 // GetStatesByProtectSurfaceID will get all states of the given Protect Surface ID.
