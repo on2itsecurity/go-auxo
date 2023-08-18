@@ -27,17 +27,11 @@ func (crm *CRM) GetContacts() ([]*Contact, error) {
 	call := "get-people"
 	method := "GET"
 
-	result, err := crm.apiClient.ApiCall(crm.apiEndpoint+call, method, "")
+	result, err := utils.GetAllPages[Contact](crm.apiEndpoint+call, method, crm.apiClient)
 
 	if err != nil {
 		return nil, err
 	}
 
-	contacts, err := utils.UnwrapItems[Contact](result)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return contacts, nil
+	return result, nil
 }

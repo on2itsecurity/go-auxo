@@ -19,17 +19,11 @@ func (asset *Asset) GetAssets() ([]*AssetItem, error) {
 	call := "get-assets"
 	method := "GET"
 
-	result, err := asset.apiClient.ApiCall(asset.apiEndpoint+call, method, "")
+	result, err := utils.GetAllPages[AssetItem](asset.apiEndpoint+call, method, asset.apiClient)
 
 	if err != nil {
 		return nil, err
 	}
 
-	contacts, err := utils.UnwrapItems[AssetItem](result)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return contacts, nil
+	return result, nil
 }
