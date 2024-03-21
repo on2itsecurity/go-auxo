@@ -52,7 +52,35 @@ func NewEventFlow(address, token string, debug bool) *EventFlow {
 	return ef
 }
 
+// StoreEvents will post the events to eventflow.
+func (e *EventFlow) StoreEvents(event string) error {
+	uri := "store-events"
+
+	_, err := e.apiClient.ApiCall(e.apiEndpoint+uri, "POST", event)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// StoreEventsWithBuffer will post the events to eventflow.
+// The events will be buffered on the back-end and send in batch after 30sec.
+func (e *EventFlow) StoreEventsWithBuffer(event string) error {
+	uri := "store-events-with-buffer"
+
+	_, err := e.apiClient.ApiCall(e.apiEndpoint+uri, "POST", event)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // AddEvent will post the event to eventflow, the event needs to given in base64.
+// DEPRECATED: Use StoreEvents instead
 // Multiple events can be added at once, by passing them in base64 seperated by a new-line (`\n`).
 func (e *EventFlow) AddEvent(assetID string, eventInBase64 string) error {
 	sensordatatype := "on2it_generic_webhook"
