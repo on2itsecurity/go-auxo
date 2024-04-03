@@ -1,6 +1,8 @@
 package eventflow
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	"github.com/on2itsecurity/go-auxo/apiclient"
@@ -11,6 +13,11 @@ import (
 type EventFlow struct {
 	apiEndpoint string `default:"/v3/eventflow/"`
 	apiClient   *apiclient.APIClient
+}
+
+// Event is the interface for the different event types
+type Event interface {
+	EventType() string
 }
 
 // Other represents the "other-event-type"
@@ -37,6 +44,37 @@ type ThreatNetwork struct {
 	Raw                string `json:"raw"`                 // The raw event
 }
 
+// EventType returns the type of the event
+func (o Other) EventType() string {
+	return o.Type
+}
+
+// EventType returns the type of the event
+func (t ThreatNetwork) EventType() string {
+	return t.Type
+}
+
+// EventQueue is a queue of events
+type EventQueue struct {
+	events []Event
+}
+
+// AddEventToQueue will add an event to the queue
+// By using a queue, multiple events can be added at once, with the PostEventQueue function
+func (q *EventQueue) AddEventToQueue(e Event) {
+	q.events = append(q.events, e)
+}
+
+// GetEventQueue will return the queue of events
+func (q *EventQueue) GetEventQueue() []Event {
+	return q.events
+}
+
+// ClearEventQueue will empty the queue
+func (q *EventQueue) ClearEventQueue() {
+	q.events = nil
+}
+
 // Entity represents an Attacker of Victim
 type Entity struct {
 	Type  string `json:"type"`  // The type of the entity i.e. container-id or IPv4
@@ -52,8 +90,33 @@ func NewEventFlow(address, token string, debug bool) *EventFlow {
 	return ef
 }
 
+// PostEventQueue will post the events in the queue to the EventFlow API and empty the queue
+func (e *EventFlow) PostEventQueue(q *EventQueue) error {
+
+	if len(q.GetEventQueue()) == 0 {
+		return fmt.Errorf("No events in queue")
+	}
+
+	postData := ""
+	for _, event := range q.GetEventQueue() {
+		//Convert to base64 and add to postData
+		byteOutput, _ := json.Marshal(event)
+		base64Output := base64.StdEncoding.EncodeToString(byteOutput)
+		postData += base64Output + "\n"
+	}
+
+	//Clear eventQueue
+	q.events = nil
+
+	err := e.StoreEventsInBase64(postData)
+
+	return err
+}
+
 // StoreEvents will post the events to eventflow.
-func (e *EventFlow) StoreEvents(event string) error {
+// The events needs to be given in base64, multiple events at once, can be seperated by a new-line (`\n`).
+// When switching from the AddEvent method a new API token is required.
+func (e *EventFlow) StoreEventsInBase64(event string) error {
 	uri := "store-events"
 
 	_, err := e.apiClient.ApiCall(e.apiEndpoint+uri, "POST", event)
@@ -65,22 +128,8 @@ func (e *EventFlow) StoreEvents(event string) error {
 	return nil
 }
 
-// StoreEventsWithBuffer will post the events to eventflow.
-// The events will be buffered on the back-end and send in batch after 30sec.
-func (e *EventFlow) StoreEventsWithBuffer(event string) error {
-	uri := "store-events-with-buffer"
-
-	_, err := e.apiClient.ApiCall(e.apiEndpoint+uri, "POST", event)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // AddEvent will post the event to eventflow, the event needs to given in base64.
-// DEPRECATED: Use StoreEvents instead
+// DEPRECATED: Use StoreEventsInBase64 instead
 // Multiple events can be added at once, by passing them in base64 seperated by a new-line (`\n`).
 func (e *EventFlow) AddEvent(assetID string, eventInBase64 string) error {
 	sensordatatype := "on2it_generic_webhook"
