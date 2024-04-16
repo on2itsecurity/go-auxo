@@ -7,9 +7,8 @@ This repository contains an AUXO API wrapper in GO.
 AUXO API documentation: https://api.on2it.net/v3/doc
 
 ## Versions
-Only "major" versions are listed here, check the releases/tags for the most current version.
 
-- Version 1.0.0 - First release
+Check the tags for the most current version.
 
 ## Using the Auxo API wrapper
 
@@ -34,7 +33,7 @@ module github.com/projectname
 go 1.19
 
 require (
-   github.com/on2itsecurity/go-auxo v1.0.0
+   github.com/on2itsecurity/go-auxo v1.0.10
 )
 ```
 
