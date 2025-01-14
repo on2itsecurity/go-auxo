@@ -33,7 +33,7 @@ module github.com/projectname
 go 1.19
 
 require (
-   github.com/on2itsecurity/go-auxo v1.0.10
+   github.com/on2itsecurity/go-auxo v1.0.11
 )
 ```
 
