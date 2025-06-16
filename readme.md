@@ -67,7 +67,7 @@ go mod vendor
 The aim is to support all Auxo API endpoints, currently;
 
 * Asset
-* Integration
+* CaseIntegration
 * CRM
 * Eventflow
 * ZeroTrust
@@ -77,9 +77,9 @@ These different endpoints can be called with the same `client`, i.e.;
 
 ```go
 auxoClient.Asset.<action>
+auxoClient.CaseIntegration.<action>
 auxoClient.CRM.<action>
 auxoClient.Eventflow.<action>
-auxoClient.Integration.<action>
 auxoClient.ZeroTrust.<action>
 auxoClient.ZTReadiness.<action>
 ```
