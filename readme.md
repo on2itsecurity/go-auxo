@@ -30,10 +30,10 @@ Add the API module to `go.mod`, it is recommended to specificly specify the vers
 ```go
 module github.com/projectname
 
-go 1.19
+go 1.23
 
 require (
-   github.com/on2itsecurity/go-auxo v1.0.11
+   github.com/on2itsecurity/go-auxo v1.0.12
 )
 ```
 
@@ -67,6 +67,7 @@ go mod vendor
 The aim is to support all Auxo API endpoints, currently;
 
 * Asset
+* CaseIntegration
 * CRM
 * Eventflow
 * ZeroTrust
@@ -76,6 +77,7 @@ These different endpoints can be called with the same `client`, i.e.;
 
 ```go
 auxoClient.Asset.<action>
+auxoClient.CaseIntegration.<action>
 auxoClient.CRM.<action>
 auxoClient.Eventflow.<action>
 auxoClient.ZeroTrust.<action>
