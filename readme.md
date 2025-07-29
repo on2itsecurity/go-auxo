@@ -10,6 +10,10 @@ AUXO API documentation: https://api.on2it.net/v3/doc
 
 Check the tags for the most current version.
 
+Version 2 expects a context to be passed as the first argument to each function that makes HTTP calls. This allows users to have more control over the HTTP calls, including timeouts, cancellation, and request tracing. If the context is passed as `nil`, it will use the default (`context.Background()`).
+
+Migrating from version 1.x to 2.x will require adding context as the first parameter to all function calls.
+
 ## Using the Auxo API wrapper
 
 ### Requirements
@@ -48,6 +52,8 @@ go mod vendor
 1. Include the library in your projects in the Import.
    ```go
    import (
+   	"context"
+   	"time"
    	"github.com/on2itsecurity/go-auxo"
    )
    ```
@@ -59,7 +65,13 @@ go mod vendor
 
 3. Call the functions, i.e.
    ```go
-   allProtectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces()
+   // Using default context
+   allProtectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(nil)
+   
+   // Using context with timeout
+   ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+   defer cancel()
+   allProtectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(ctx)
    ```
 
 ### Structure

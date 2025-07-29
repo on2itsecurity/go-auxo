@@ -1,6 +1,10 @@
 package zerotrust
 
-import "github.com/on2itsecurity/go-auxo/utils"
+import (
+	"context"
+
+	"github.com/on2itsecurity/go-auxo/utils"
+)
 
 type MeasureGroups struct {
 	Groups []MeasureGroup `json:"groups"` //All measures are categorized in groups
@@ -23,11 +27,15 @@ type Measure struct {
 
 // GetMeasures will get all measures of the relation (based on used API Token)
 // It returns an array with all the Measure objects.
-func (zt *ZeroTrust) GetMeasures() (*MeasureGroups, error) {
+func (zt *ZeroTrust) GetMeasures(ctx context.Context) (*MeasureGroups, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "get-all-measures"
 	method := "GET"
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return nil, err
