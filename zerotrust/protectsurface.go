@@ -1,10 +1,11 @@
 package zerotrust
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	"github.com/on2itsecurity/go-auxo/utils"
+	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
 
 // ProtectSurface holds all the fields for the ProtectSurface "object"
@@ -90,14 +91,17 @@ type Maturity struct {
 // CreateProtectSurface will create a protectsurface object and passes it to the API, with the minimal values.
 // If replace is true, it will replace the existing protectsurface object if applicable.
 // It returns a ProtectSurface object.
-func (zt *ZeroTrust) CreateProtectSurface(name string, relevance int, replace bool) (*ProtectSurface, error) {
+func (zt *ZeroTrust) CreateProtectSurface(ctx context.Context, name string, relevance int, replace bool) (*ProtectSurface, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	protectsurface := ProtectSurface{
 		Name:      name,
 		Relevance: relevance,
 	}
 
-	ps, err := zt.CreateProtectSurfaceByObject(protectsurface, replace)
+	ps, err := zt.CreateProtectSurfaceByObject(ctx, protectsurface, replace)
 
 	if err != nil {
 		return nil, err
@@ -109,7 +113,11 @@ func (zt *ZeroTrust) CreateProtectSurface(name string, relevance int, replace bo
 // CreateProtectSurfaceByObject creates a protectsurface by passing a protectsurface object
 // If replace is true, it will replace the existing protectsurface object if applicable.
 // It returns a protectsurface object.
-func (zt *ZeroTrust) CreateProtectSurfaceByObject(protectsurface ProtectSurface, replace bool) (*ProtectSurface, error) {
+func (zt *ZeroTrust) CreateProtectSurfaceByObject(ctx context.Context, protectsurface ProtectSurface, replace bool) (*ProtectSurface, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "create-protectsurface"
 
 	if replace {
@@ -124,7 +132,7 @@ func (zt *ZeroTrust) CreateProtectSurfaceByObject(protectsurface ProtectSurface,
 		return nil, err
 	}
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, string(data))
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, string(data))
 
 	if err != nil {
 		return nil, err
@@ -139,11 +147,15 @@ func (zt *ZeroTrust) CreateProtectSurfaceByObject(protectsurface ProtectSurface,
 }
 
 // DeleteProtectSurfaceByID will delete the protectsurface
-func (zt *ZeroTrust) DeleteProtectSurfaceByID(id string) error {
+func (zt *ZeroTrust) DeleteProtectSurfaceByID(ctx context.Context, id string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "remove-protectsurface-and-states?id=" + id
 	method := "POST"
 
-	_, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	_, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return err
@@ -153,15 +165,19 @@ func (zt *ZeroTrust) DeleteProtectSurfaceByID(id string) error {
 }
 
 // DeleteProtectSurfaces will delete ALL ProtectSurfaces
-func (zt *ZeroTrust) DeleteProtectSurfaces() error {
-	pss, err := zt.GetProtectSurfaces()
+func (zt *ZeroTrust) DeleteProtectSurfaces(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	pss, err := zt.GetProtectSurfaces(ctx)
 
 	if err != nil {
 		return err
 	}
 
 	for _, ps := range pss {
-		err := zt.DeleteProtectSurfaceByID(ps.ID)
+		err := zt.DeleteProtectSurfaceByID(ctx, ps.ID)
 		if err != nil {
 			return err
 		}
@@ -172,11 +188,15 @@ func (zt *ZeroTrust) DeleteProtectSurfaces() error {
 
 // GetProtectSurfaceByID will get a protectsurface by ID
 // It returns a ProtectSurface object.
-func (zt *ZeroTrust) GetProtectSurfaceByID(protectSurfaceID string) (*ProtectSurface, error) {
+func (zt *ZeroTrust) GetProtectSurfaceByID(ctx context.Context, protectSurfaceID string) (*ProtectSurface, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "get-protectsurface?id=" + protectSurfaceID
 	method := "GET"
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return nil, err
@@ -198,7 +218,11 @@ func (zt *ZeroTrust) GetProtectSurfaceByID(protectSurfaceID string) (*ProtectSur
 // GetProtectSurfaceByStateTypeAndValue will get a protectsurface by state type and value (i.e. by IP address)
 // Method could either be "ip" or "exact", when "ip" is used, the value will be matched to the most specific matching CIDR.
 // It returns a (single) ProtectSurface object.
-func (zt *ZeroTrust) GetProtectSurfaceByStateTypeAndValue(stateType, match_method, value string) (*ProtectSurface, error) {
+func (zt *ZeroTrust) GetProtectSurfaceByStateTypeAndValue(ctx context.Context, stateType, match_method, value string) (*ProtectSurface, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	if !(match_method == "ip" || match_method == "exact") {
 		return nil, fmt.Errorf("Invalid match method: %s (only 'ip' or 'exact' are supported)", match_method)
 	}
@@ -206,7 +230,7 @@ func (zt *ZeroTrust) GetProtectSurfaceByStateTypeAndValue(stateType, match_metho
 	call := fmt.Sprintf("get-protectsurface-by-state-type-and-value-match?match_type=%s&match_method=%s&match_value=%s", stateType, match_method, value)
 	method := "GET"
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return nil, err
@@ -227,11 +251,15 @@ func (zt *ZeroTrust) GetProtectSurfaceByStateTypeAndValue(stateType, match_metho
 
 // GetProtectSurfaces will get all protectsurfaces of the relations (based on used API token)
 // It returns an array with all the ProtectSurface objects.
-func (zt *ZeroTrust) GetProtectSurfaces() ([]*ProtectSurface, error) {
+func (zt *ZeroTrust) GetProtectSurfaces(ctx context.Context) ([]*ProtectSurface, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "get-protectsurfaces"
 	method := "GET"
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return nil, err
@@ -248,8 +276,12 @@ func (zt *ZeroTrust) GetProtectSurfaces() ([]*ProtectSurface, error) {
 
 // UpdateProtectSurface will update/replace existing ProtectSurface, but keeps the ID.
 // Returns the updated protectsurface
-func (zt *ZeroTrust) UpdateProtectSurface(ps ProtectSurface) (*ProtectSurface, error) {
-	result, err := zt.CreateProtectSurfaceByObject(ps, true)
+func (zt *ZeroTrust) UpdateProtectSurface(ctx context.Context, ps ProtectSurface) (*ProtectSurface, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	result, err := zt.CreateProtectSurfaceByObject(ctx, ps, true)
 
 	if err != nil {
 		return nil, err

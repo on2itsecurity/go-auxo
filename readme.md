@@ -10,6 +10,40 @@ AUXO API documentation: https://api.on2it.net/v3/doc
 
 Check the tags for the most current version.
 
+### Version 2.x (Breaking Changes)
+
+Version 2 introduces **breaking changes** that require code modifications when upgrading from v1.x:
+
+**Key Changes:**
+- **Context Support**: All functions that make HTTP calls now require a `context.Context` as the first parameter
+- **Timeout Control**: Timeout is now controlled via context instead of client timeout
+- **Better Cancellation**: HTTP requests can be cancelled using context cancellation
+
+**Migration from v1.x to v2.x:**
+1. Add `context` as the first parameter to all API calls
+2. Update your imports to include `"context"`
+3. Use `nil` for default behavior or pass your own context for custom timeout/cancellation
+
+**Before (v1.x):**
+```go
+protectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces()
+```
+
+**After (v2.x):**
+```go
+// Using nil (default behavior)
+protectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(nil)
+
+// Using custom context with timeout
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+protectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(ctx)
+```
+
+### Version 1.x (Legacy)
+
+Version 1.x is the legacy version without context support. Use v1.x tags if you need the old API without breaking changes.
+
 ## Using the Auxo API wrapper
 
 ### Requirements
@@ -30,10 +64,10 @@ Add the API module to `go.mod`, it is recommended to specificly specify the vers
 ```go
 module github.com/projectname
 
-go 1.23
+go 1.24
 
 require (
-   github.com/on2itsecurity/go-auxo v1.0.12
+   github.com/on2itsecurity/go-auxo/v2 v2.0.0
 )
 ```
 
@@ -48,7 +82,9 @@ go mod vendor
 1. Include the library in your projects in the Import.
    ```go
    import (
-   	"github.com/on2itsecurity/go-auxo"
+   	"context"
+   	"time"
+   	"github.com/on2itsecurity/go-auxo/v2"
    )
    ```
 
@@ -59,7 +95,13 @@ go mod vendor
 
 3. Call the functions, i.e.
    ```go
-   allProtectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces()
+   // Using default context
+   allProtectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(nil)
+   
+   // Using context with timeout
+   ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+   defer cancel()
+   allProtectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(ctx)
    ```
 
 ### Structure

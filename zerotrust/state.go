@@ -1,10 +1,11 @@
 package zerotrust
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	"github.com/on2itsecurity/go-auxo/utils"
+	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
 
 // State represents the State object
@@ -25,7 +26,11 @@ type State struct {
 // CreateStateByObject creates a state by passing a State object
 // Requires a valid State object.
 // Returns the created State object or an error.
-func (zt *ZeroTrust) CreateStateByObject(state State) (*State, error) {
+func (zt *ZeroTrust) CreateStateByObject(ctx context.Context, state State) (*State, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "create-or-replace-state"
 	method := "POST"
 
@@ -38,7 +43,7 @@ func (zt *ZeroTrust) CreateStateByObject(state State) (*State, error) {
 		return nil, err
 	}
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, string(data))
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, string(data))
 
 	if err != nil {
 		return nil, err
@@ -55,15 +60,19 @@ func (zt *ZeroTrust) CreateStateByObject(state State) (*State, error) {
 
 // DeleteStates will delete ALL states belonging to a ProtectSurface
 // Requires a valid ProtectSurface ID.
-func (zt *ZeroTrust) DeleteStates(psID string) error {
-	states, err := zt.GetStatesByProtectSurfaceID(psID)
+func (zt *ZeroTrust) DeleteStates(ctx context.Context, psID string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	states, err := zt.GetStatesByProtectSurfaceID(ctx, psID)
 
 	if err != nil {
 		return err
 	}
 
 	for _, s := range states {
-		err := zt.DeleteStateByID(s.ID)
+		err := zt.DeleteStateByID(ctx, s.ID)
 		if err != nil {
 			return err
 		}
@@ -73,11 +82,15 @@ func (zt *ZeroTrust) DeleteStates(psID string) error {
 }
 
 // DeleteStateByID will delete the State
-func (zt *ZeroTrust) DeleteStateByID(id string) error {
+func (zt *ZeroTrust) DeleteStateByID(ctx context.Context, id string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "remove-state?id=" + id
 	method := "POST"
 
-	_, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	_, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return err
@@ -87,11 +100,15 @@ func (zt *ZeroTrust) DeleteStateByID(id string) error {
 }
 
 // GetState By ID will get a state by ID
-func (zt *ZeroTrust) GetStateByID(id string) (*State, error) {
+func (zt *ZeroTrust) GetStateByID(ctx context.Context, id string) (*State, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "get-state" + "?id=" + id
 	method := "GET"
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return nil, err
@@ -112,16 +129,20 @@ func (zt *ZeroTrust) GetStateByID(id string) (*State, error) {
 
 // GetStatesAll will get all states of the relation (based upon used API Token)
 // It returns an array with all the state objects.
-func (zt *ZeroTrust) GetStates() ([]*State, error) {
+func (zt *ZeroTrust) GetStates(ctx context.Context) ([]*State, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	allStates := make([]*State, 0)
-	pss, err := zt.GetProtectSurfaces()
+	pss, err := zt.GetProtectSurfaces(ctx)
 
 	if err != nil {
 		return nil, err
 	}
 
 	for _, ps := range pss {
-		states, err := zt.GetStatesByProtectSurfaceID(ps.ID)
+		states, err := zt.GetStatesByProtectSurfaceID(ctx, ps.ID)
 
 		if err != nil {
 			return nil, err
@@ -135,11 +156,15 @@ func (zt *ZeroTrust) GetStates() ([]*State, error) {
 
 // GetStatesByProtectSurfaceID will get all states of the given Protect Surface ID.
 // It returns an array with all the state objects.
-func (zt *ZeroTrust) GetStatesByProtectSurfaceID(psID string) ([]*State, error) {
+func (zt *ZeroTrust) GetStatesByProtectSurfaceID(ctx context.Context, psID string) ([]*State, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "get-states-by-protectsurface" + "?id=" + psID
 	method := "GET"
 
-	result, err := zt.apiClient.ApiCall(zt.apiEndpoint+call, method, "")
+	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
 
 	if err != nil {
 		return nil, err
@@ -156,8 +181,12 @@ func (zt *ZeroTrust) GetStatesByProtectSurfaceID(psID string) ([]*State, error) 
 
 // UpdateState will update/replace existing state, but keeps the ID.
 // Returns the updated state
-func (zt *ZeroTrust) UpdateState(state State) (*State, error) {
-	result, err := zt.CreateStateByObject(state)
+func (zt *ZeroTrust) UpdateState(ctx context.Context, state State) (*State, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	result, err := zt.CreateStateByObject(ctx, state)
 
 	if err != nil {
 		return nil, err

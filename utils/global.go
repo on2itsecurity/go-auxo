@@ -1,10 +1,11 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	"github.com/on2itsecurity/go-auxo/apiclient"
+	"github.com/on2itsecurity/go-auxo/v2/apiclient"
 )
 
 // itemWrapper, used to wrap the items in a json items[] array (or retrieve/unwrap them)
@@ -43,14 +44,18 @@ func UnwrapItems[T any](jsonAsByte []byte) ([]*T, error) {
 // getAllPages will get all pages of an API call when the API call is paged
 // input is the apicall, method and client
 // returns a slice of items
-func GetAllPages[T any](apiCall, method string, apiClient *apiclient.APIClient) ([]*T, error) {
+func GetAllPages[T any](ctx context.Context, apiCall, method string, apiClient *apiclient.APIClient) ([]*T, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	page := 1
 	lastCount := 0
 	items := make([]*T, 0)
 
 	for page == 1 || lastCount >= 100 {
 		fullcall := fmt.Sprintf("%s?page_number=%d", apiCall, page)
-		result, err := apiClient.ApiCall(fullcall, method, "")
+		result, err := apiClient.ApiCall(ctx, fullcall, method, "")
 
 		if err != nil {
 			return nil, err

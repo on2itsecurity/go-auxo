@@ -1,6 +1,10 @@
 package asset
 
-import "github.com/on2itsecurity/go-auxo/utils"
+import (
+	"context"
+
+	"github.com/on2itsecurity/go-auxo/v2/utils"
+)
 
 // AssetItem holds all the fields for the asset "object"
 type AssetItem struct {
@@ -13,13 +17,17 @@ type AssetItem struct {
 	Status          string `json:"status"`                 //The status of the asset
 }
 
-// GetContacts will get all contacts of the relation (based on used API Token)
-// It returns an array with all the Location objects.
-func (asset *Asset) GetAssets() ([]*AssetItem, error) {
+// GetAssets will get all assets of the relation (based on used API Token)
+// It returns an array with all the AssetItem objects.
+func (asset *Asset) GetAssets(ctx context.Context) ([]*AssetItem, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "get-assets"
 	method := "GET"
 
-	result, err := utils.GetAllPages[AssetItem](asset.apiEndpoint+call, method, asset.apiClient)
+	result, err := utils.GetAllPages[AssetItem](ctx, asset.apiEndpoint+call, method, asset.apiClient)
 
 	if err != nil {
 		return nil, err

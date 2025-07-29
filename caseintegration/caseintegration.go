@@ -1,7 +1,7 @@
 package caseintegration
 
 import (
-	"github.com/on2itsecurity/go-auxo/apiclient"
+	"github.com/on2itsecurity/go-auxo/v2/apiclient"
 )
 
 // CaseIntegration is the main object for the Case API

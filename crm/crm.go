@@ -1,7 +1,7 @@
 package crm
 
 import (
-	"github.com/on2itsecurity/go-auxo/apiclient"
+	"github.com/on2itsecurity/go-auxo/v2/apiclient"
 )
 
 // CRM is the main object for the CRM API

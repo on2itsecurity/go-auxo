@@ -1,11 +1,12 @@
 package eventflow
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
-	"github.com/on2itsecurity/go-auxo/apiclient"
+	"github.com/on2itsecurity/go-auxo/v2/apiclient"
 )
 
 // EventFlow is the main object for the EventFlow / Generic Event API
@@ -91,7 +92,10 @@ func NewEventFlow(address, token string, debug bool) *EventFlow {
 }
 
 // PostEventQueue will post the events in the queue to the EventFlow API and empty the queue
-func (e *EventFlow) PostEventQueue(q *EventQueue) error {
+func (e *EventFlow) PostEventQueue(ctx context.Context, q *EventQueue) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	if len(q.GetEventQueue()) == 0 {
 		return fmt.Errorf("No events in queue")
@@ -108,7 +112,7 @@ func (e *EventFlow) PostEventQueue(q *EventQueue) error {
 	//Clear eventQueue
 	q.events = nil
 
-	err := e.StoreEventsInBase64(postData)
+	err := e.StoreEventsInBase64(ctx, postData)
 
 	return err
 }
@@ -116,10 +120,14 @@ func (e *EventFlow) PostEventQueue(q *EventQueue) error {
 // StoreEvents will post the events to eventflow.
 // The events needs to be given in base64, multiple events at once, can be seperated by a new-line (`\n`).
 // When switching from the AddEvent method a new API token is required.
-func (e *EventFlow) StoreEventsInBase64(event string) error {
+func (e *EventFlow) StoreEventsInBase64(ctx context.Context, event string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	uri := "store-events"
 
-	_, err := e.apiClient.ApiCall(e.apiEndpoint+uri, "POST", event)
+	_, err := e.apiClient.ApiCall(ctx, e.apiEndpoint+uri, "POST", event)
 
 	if err != nil {
 		return err
@@ -131,11 +139,15 @@ func (e *EventFlow) StoreEventsInBase64(event string) error {
 // AddEvent will post the event to eventflow, the event needs to given in base64.
 // DEPRECATED: Use StoreEventsInBase64 instead
 // Multiple events can be added at once, by passing them in base64 seperated by a new-line (`\n`).
-func (e *EventFlow) AddEvent(assetID string, eventInBase64 string) error {
+func (e *EventFlow) AddEvent(ctx context.Context, assetID string, eventInBase64 string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	sensordatatype := "on2it_generic_webhook"
 	uri := fmt.Sprintf("store?sensorid=on2itassetid:%s&sensordatatype=%s", assetID, sensordatatype)
 
-	_, err := e.apiClient.ApiCall(e.apiEndpoint+uri, "POST", eventInBase64)
+	_, err := e.apiClient.ApiCall(ctx, e.apiEndpoint+uri, "POST", eventInBase64)
 
 	if err != nil {
 		return err
@@ -144,7 +156,7 @@ func (e *EventFlow) AddEvent(assetID string, eventInBase64 string) error {
 	return nil
 }
 
-// SetTimeout, when large calls are created to add events, it might be usefull to extend the timeout.
+// SetTimeout, when large calls are created to add events, it might be usefull to extend the timeout (sets the default timeout used when context is nil)
 func (e *EventFlow) SetTimeout(seconds int) {
 	e.apiClient.SetTimeout(seconds)
 }

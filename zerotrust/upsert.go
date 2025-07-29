@@ -1,9 +1,10 @@
 package zerotrust
 
 import (
+	"context"
 	"encoding/json"
 
-	"github.com/on2itsecurity/go-auxo/utils"
+	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
 
 type Upsert struct {
@@ -28,7 +29,11 @@ type UpsertState struct {
 // Upsert creates a minimal protectsurface with location and state,
 // and inserts the location and the protectsurface (and never update it if it already exists),
 // and replaces the state in its entirety every time
-func (zt *ZeroTrust) UpsertByObject(upsert Upsert) error {
+func (zt *ZeroTrust) UpsertByObject(ctx context.Context, upsert Upsert) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "upsert-protectsurface-location-state"
 	method := "POST"
 
@@ -37,7 +42,7 @@ func (zt *ZeroTrust) UpsertByObject(upsert Upsert) error {
 		return err
 	}
 
-	_, err = zt.apiClient.ApiCall(zt.apiEndpoint+call, method, string(data))
+	_, err = zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, string(data))
 
 	if err != nil {
 		return err

@@ -1,6 +1,10 @@
 package crm
 
-import "github.com/on2itsecurity/go-auxo/utils"
+import (
+	"context"
+
+	"github.com/on2itsecurity/go-auxo/v2/utils"
+)
 
 // Contact holds all the fields for the contact "object"
 type Contact struct {
@@ -23,11 +27,15 @@ type Contact struct {
 
 // GetContacts will get all contacts of the relation (based on used API Token)
 // It returns an array with all the Location objects.
-func (crm *CRM) GetContacts() ([]*Contact, error) {
+func (crm *CRM) GetContacts(ctx context.Context) ([]*Contact, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	call := "get-people"
 	method := "GET"
 
-	result, err := utils.GetAllPages[Contact](crm.apiEndpoint+call, method, crm.apiClient)
+	result, err := utils.GetAllPages[Contact](ctx, crm.apiEndpoint+call, method, crm.apiClient)
 
 	if err != nil {
 		return nil, err

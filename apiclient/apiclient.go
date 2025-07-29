@@ -2,6 +2,7 @@ package apiclient
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -46,8 +47,16 @@ func NewAPIClient(address, token string, debug bool) (*APIClient, error) {
 
 // ApiCall - makes an API call to the ZeroTrust API
 // Returns the response body or an error
-func (c *APIClient) ApiCall(uri string, method string, data string) ([]byte, error) {
-	client := &http.Client{Transport: c.config.tr, Timeout: time.Duration(c.config.timeoutInSec) * time.Second}
+func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data string) ([]byte, error) {
+	if ctx == nil {
+		// Use default timeout if no context provided
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(c.config.timeoutInSec)*time.Second)
+		defer cancel()
+	}
+
+	// Remove timeout from client - let context handle it
+	client := &http.Client{Transport: c.config.tr}
 	debug := c.config.debug
 
 	address := "https://" + c.config.address + uri
@@ -57,7 +66,7 @@ func (c *APIClient) ApiCall(uri string, method string, data string) ([]byte, err
 		fmt.Println("Address: " + address)
 	}
 
-	req, err := http.NewRequest(method, address, bytes.NewBuffer([]byte(data)))
+	req, err := http.NewRequestWithContext(ctx, method, address, bytes.NewBuffer([]byte(data)))
 
 	if debug {
 		fmt.Println("Data:" + data)
@@ -111,7 +120,7 @@ func (c *APIClient) ApiCall(uri string, method string, data string) ([]byte, err
 	return body, nil
 }
 
-// SetTimeout - sets the timeout for the API call in seconds
+// SetTimeout - sets the default timeout used when context is nil
 func (c *APIClient) SetTimeout(seconds int) {
 	c.config.timeoutInSec = seconds
 }
