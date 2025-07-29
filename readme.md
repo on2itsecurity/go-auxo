@@ -64,7 +64,7 @@ Add the API module to `go.mod`, it is recommended to specificly specify the vers
 ```go
 module github.com/projectname
 
-go 1.23
+go 1.24
 
 require (
    github.com/on2itsecurity/go-auxo/v2 v2.0.0

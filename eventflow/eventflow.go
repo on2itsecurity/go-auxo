@@ -156,7 +156,7 @@ func (e *EventFlow) AddEvent(ctx context.Context, assetID string, eventInBase64 
 	return nil
 }
 
-// SetTimeout, when large calls are created to add events, it might be usefull to extend the timeout.
+// SetTimeout, when large calls are created to add events, it might be usefull to extend the timeout (sets the default timeout used when context is nil)
 func (e *EventFlow) SetTimeout(seconds int) {
 	e.apiClient.SetTimeout(seconds)
 }
