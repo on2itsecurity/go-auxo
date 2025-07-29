@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/on2itsecurity/go-auxo/utils"
+	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
 
 // ProtectSurface holds all the fields for the ProtectSurface "object"

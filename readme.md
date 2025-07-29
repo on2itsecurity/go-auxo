@@ -10,9 +10,39 @@ AUXO API documentation: https://api.on2it.net/v3/doc
 
 Check the tags for the most current version.
 
-Version 2 expects a context to be passed as the first argument to each function that makes HTTP calls. This allows users to have more control over the HTTP calls, including timeouts, cancellation, and request tracing. If the context is passed as `nil`, it will use the default (`context.Background()`).
+### Version 2.x (Breaking Changes)
 
-Migrating from version 1.x to 2.x will require adding context as the first parameter to all function calls.
+Version 2 introduces **breaking changes** that require code modifications when upgrading from v1.x:
+
+**Key Changes:**
+- **Context Support**: All functions that make HTTP calls now require a `context.Context` as the first parameter
+- **Timeout Control**: Timeout is now controlled via context instead of client timeout
+- **Better Cancellation**: HTTP requests can be cancelled using context cancellation
+
+**Migration from v1.x to v2.x:**
+1. Add `context` as the first parameter to all API calls
+2. Update your imports to include `"context"`
+3. Use `nil` for default behavior or pass your own context for custom timeout/cancellation
+
+**Before (v1.x):**
+```go
+protectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces()
+```
+
+**After (v2.x):**
+```go
+// Using nil (default behavior)
+protectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(nil)
+
+// Using custom context with timeout
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+protectSurfaces, err := auxoClient.ZeroTrust.GetProtectSurfaces(ctx)
+```
+
+### Version 1.x (Legacy)
+
+Version 1.x is the legacy version without context support. Use v1.x tags if you need the old API without breaking changes.
 
 ## Using the Auxo API wrapper
 
@@ -37,7 +67,7 @@ module github.com/projectname
 go 1.23
 
 require (
-   github.com/on2itsecurity/go-auxo v1.0.12
+   github.com/on2itsecurity/go-auxo/v2 v2.0.0
 )
 ```
 
@@ -54,7 +84,7 @@ go mod vendor
    import (
    	"context"
    	"time"
-   	"github.com/on2itsecurity/go-auxo"
+   	"github.com/on2itsecurity/go-auxo/v2"
    )
    ```
 

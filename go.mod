@@ -1,4 +1,4 @@
-module github.com/on2itsecurity/go-auxo
+module github.com/on2itsecurity/go-auxo/v2
 
 go 1.24.0
 

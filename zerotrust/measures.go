@@ -3,7 +3,7 @@ package zerotrust
 import (
 	"context"
 
-	"github.com/on2itsecurity/go-auxo/utils"
+	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
 
 type MeasureGroups struct {

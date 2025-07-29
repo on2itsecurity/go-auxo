@@ -1,12 +1,15 @@
 package auxo
 
 import (
-	"github.com/on2itsecurity/go-auxo/asset"
-	"github.com/on2itsecurity/go-auxo/caseintegration"
-	"github.com/on2itsecurity/go-auxo/crm"
-	"github.com/on2itsecurity/go-auxo/eventflow"
-	"github.com/on2itsecurity/go-auxo/zerotrust"
+	"github.com/on2itsecurity/go-auxo/v2/asset"
+	"github.com/on2itsecurity/go-auxo/v2/caseintegration"
+	"github.com/on2itsecurity/go-auxo/v2/crm"
+	"github.com/on2itsecurity/go-auxo/v2/eventflow"
+	"github.com/on2itsecurity/go-auxo/v2/zerotrust"
 )
+
+// Version represents the current version of the go-auxo library
+const Version = "2.0.0"
 
 // Client struct, contains the different "Auxo API sections"
 type Client struct {
@@ -28,4 +31,9 @@ func NewClient(address, token string, debug bool) (*Client, error) {
 	client.ZeroTrust = zerotrust.NewZeroTrust(address, token, debug)
 
 	return client, nil
+}
+
+// GetVersion returns the current version of the go-auxo library
+func (c *Client) GetVersion() string {
+	return Version
 }

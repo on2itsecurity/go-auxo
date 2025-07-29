@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/on2itsecurity/go-auxo/apiclient"
+	"github.com/on2itsecurity/go-auxo/v2/apiclient"
 )
 
 // EventFlow is the main object for the EventFlow / Generic Event API

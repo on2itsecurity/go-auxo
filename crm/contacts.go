@@ -3,7 +3,7 @@ package crm
 import (
 	"context"
 
-	"github.com/on2itsecurity/go-auxo/utils"
+	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
 
 // Contact holds all the fields for the contact "object"
