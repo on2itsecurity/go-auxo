@@ -8,14 +8,28 @@ import (
 	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
 
+// HistoryNote represents a note or update in the case history
+type HistoryNote struct {
+	Content   string `json:"content"`   // The contents of the update
+	Timestamp int64  `json:"timestamp"` // Unix timestamp for the update
+}
+
+// Case represents a case in the ON2IT case system
 type Case struct {
-	ID                  string `json:"id"`                    // The Unique ID for the case (to track it across systems)
-	Subject             string `json:"subject"`               // The subject of the case
-	Note                string `json:"note"`                  // Represents a note or update added to the case
-	Priority            int    `json:"priority"`              // Case priority 1 to 4, where 1 is the highest priority
-	CaseType            string `json:"case_type"`             // The type of the case; `securityincident`, `incident`, `change`, `standardchange`, `inforequest`.
-	PrimaryContactEmail string `json:"primary_contact_email"` // The email address of the primary contact for the case, this should match a user in the system.
-	Attachment          string `json:"attachment,omitempty"`  // A base64-encoded file attachment as a data URI. The MIME and encoding type (e.g., data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64) should be included in the data URI.
+	ID                  string        `json:"id"`                         // The Unique ID for the case (to track it across systems)
+	CaseNumber          string        `json:"case_number,omitempty"`      // The ON2IT case number that is exactly 5 characters long and can contain letters and numbers
+	Subject             string        `json:"subject"`                    // The subject of the case
+	Note                string        `json:"note,omitempty"`             // Represents a note or update added to the case (used when creating a case)
+	Priority            int           `json:"priority"`                   // Case priority 1 to 4, where 1 is the highest priority
+	CaseType            string        `json:"case_type"`                  // The type of the case; `securityincident`, `incident`, `change`, `standardchange`, `inforequest`.
+	PrimaryContactEmail string        `json:"primary_contact_email"`      // The email address of the primary contact for the case, this should match a user in the system.
+	Attachment          string        `json:"attachment,omitempty"`       // A base64-encoded file attachment as a data URI. The MIME and encoding type (e.g., data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64) should be included in the data URI.
+	State               string        `json:"state,omitempty"`            // The current state of the case: `new`, `in_progress`, `awaiting_customer`, `on_hold`, `pending_engineering`, `request_close`, `request_close_by_customer`, `closed`
+	CreationDate        int64         `json:"creation_date,omitempty"`    // Unix timestamp when the case was created
+	LastUpdate          int64         `json:"last_update,omitempty"`      // Unix timestamp for the last update to the case
+	Escalated           bool          `json:"escalated,omitempty"`        // Whether the case is currently escalated
+	ResolutionState     string        `json:"resolution_state,omitempty"` // The current resolution state of the case: `pending`, `temporary`, `final`
+	HistoryOfNotes      []HistoryNote `json:"history_of_notes,omitempty"` // The entire history of the case, including state updates and notes
 }
 
 // AddNoteToCase adds a note to an existing case
@@ -29,6 +43,31 @@ func (ci *CaseIntegration) AddNoteToCase(ctx context.Context, caseID string, not
 	method := "POST"
 
 	data, err := json.Marshal(utils.WrapItems(map[string]string{"note": note}))
+	if err != nil {
+		return err
+	}
+
+	// Will return an empty response
+	_, err = ci.apiClient.ApiCall(ctx, ci.apiEndpoint+call, method, string(data))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AddAttachmentToCase adds an attachment to an existing case
+func (ci *CaseIntegration) AddAttachmentToCase(ctx context.Context, caseID string, attachment string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	call := "integration/" + caseID + "/attachments"
+
+	method := "POST"
+
+	data, err := json.Marshal(utils.WrapItems(map[string]string{"attachment": attachment}))
 	if err != nil {
 		return err
 	}
