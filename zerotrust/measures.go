@@ -20,6 +20,7 @@ type MeasureGroup struct {
 
 type Measure struct {
 	Caption     string              `json:"caption"`     //The caption of the measure
+	Label       string              `json:"label"`       //The label of the measure
 	Explanation string              `json:"explanation"` //The explanation of the measure
 	Mappings    map[string][]string `json:"mappings"`    //The mappings of the measure (f.e. with Mitre ATT&CK)
 	Name        string              `json:"name"`        //The name (=id) of the measure
