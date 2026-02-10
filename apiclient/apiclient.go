@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	"golang.org/x/net/http2"
@@ -20,6 +21,9 @@ type apiConfig struct {
 	debug        bool
 	contentType  string
 	timeoutInSec int
+	connMaxAge   time.Duration
+	lastRefresh  time.Time
+	mu           sync.Mutex
 }
 
 // APIClient server details
@@ -41,6 +45,8 @@ func NewAPIClient(address, token string, debug bool) (*APIClient, error) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
 	}
 	APIClient.config.timeoutInSec = 5
+	APIClient.config.connMaxAge = 5 * time.Minute
+	APIClient.config.lastRefresh = time.Now()
 
 	return APIClient, nil
 }
@@ -48,6 +54,13 @@ func NewAPIClient(address, token string, debug bool) (*APIClient, error) {
 // ApiCall - makes an API call to the ZeroTrust API
 // Returns the response body or an error
 func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data string) ([]byte, error) {
+	c.config.mu.Lock()
+	if time.Since(c.config.lastRefresh) > c.config.connMaxAge {
+		c.config.tr.CloseIdleConnections()
+		c.config.lastRefresh = time.Now()
+	}
+	c.config.mu.Unlock()
+
 	if ctx == nil {
 		// Use default timeout if no context provided
 		var cancel context.CancelFunc
