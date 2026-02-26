@@ -1,9 +1,7 @@
 module github.com/on2itsecurity/go-auxo/v2
 
-go 1.24.0
+go 1.25.0
 
-toolchain go1.24.2
+require golang.org/x/net v0.51.0
 
-require golang.org/x/net v0.49.0
-
-require golang.org/x/text v0.33.0 // indirect
+require golang.org/x/text v0.34.0 // indirect
