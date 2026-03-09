@@ -10,6 +10,10 @@ AUXO API documentation: https://api.on2it.net/v3/doc
 
 Check the tags for the most current version.
 
+## Version 2.1.x (Breaking Change)
+
+Version 2.1 introduces GetCases, but also changes the primary contact email to a pointer, which might be null from this version onwards.
+
 ### Version 2.x (Breaking Changes)
 
 Version 2 introduces **breaking changes** that require code modifications when upgrading from v1.x:
