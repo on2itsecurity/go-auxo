@@ -50,6 +50,7 @@ type MeasureState struct { //Pointers to prevent posting empty objects (which re
 // Assignment contains the assignment details
 type Assignment struct {
 	Assigned                 bool   `json:"assigned"`                               //Is the measure assigned (applicable for the protect surface)
+	Comment                  string `json:"comment,omitempty"`                      //Comment on the assignment
 	LastDeterminedByPersonID string `json:"last_determined_by_person_id,omitempty"` //E-mail of the person responsible for the assignment
 	LastDeterminedTimestamp  int    `json:"last_determined_timestamp,omitempty"`    //Unix time of the assignment
 }
@@ -57,6 +58,7 @@ type Assignment struct {
 // Implementation contains the implementation details
 type Implementation struct {
 	Implemented              bool   `json:"implemented"`                            //Is this measure implemented
+	Comment                  string `json:"comment,omitempty"`                      //Comment on the implementation
 	LastDeterminedByPersonID string `json:"last_determined_by_person_id,omitempty"` //E-mail of the person who validated the implementation
 	LastDeterminedTimestamp  int    `json:"last_determined_timestamp,omitempty"`    //Unix time of the validation
 }
@@ -64,6 +66,7 @@ type Implementation struct {
 // Evidence contains the evidence details
 type Evidence struct {
 	Evidenced                bool   `json:"evidenced"`                              //Is the implementation working as expected did we evidenced it
+	Comment                  string `json:"comment,omitempty"`                      //Comment on the evidence
 	LastDeterminedByPersonID string `json:"last_determined_by_person_id,omitempty"` //E-mail of the person who gathered the evidence
 	LastDeterminedTimestamp  int    `json:"last_determined_timestamp,omitempty"`    //Unix time of the evidence
 }
