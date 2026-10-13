@@ -174,9 +174,10 @@ func versionAt[V versioned](meta HistoryMeta, current V, versions []V, ts int64)
 
 // entityChanges converts the versions of a single entity to changes
 func entityChanges[V versioned](et EntityType, meta HistoryMeta, versions []V, name func(*V) string) []*Change {
+	//Versions are newest first, reverse before the (stable) sort so versions with the same timestamp stay in order
 	asc := make([]*V, len(versions))
 	for i := range versions {
-		asc[i] = &versions[i]
+		asc[len(versions)-1-i] = &versions[i]
 	}
 	sort.SliceStable(asc, func(i, j int) bool { return versionTimestamp(asc[i]) < versionTimestamp(asc[j]) })
 
@@ -267,9 +268,10 @@ func diffFields[V versioned](a, b V) []string {
 
 // ToProtectSurface converts the version to a ProtectSurface which can be written with CreateProtectSurfaceByObject or UpdateProtectSurface.
 // psIDs maps protect surface uniqueness keys to IDs, used to convert the flows to other protect surfaces.
+// personID and at are set as last determined by/timestamp on the measures, as the API requires them and the history does not contain them.
 // The ID is not set, set it to update an existing protect surface.
-// Note that the history does not contain the risk accepted comment and who/when determined a measure.
-func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[string]string) (*ProtectSurface, error) {
+// Note that the history does not contain the risk accepted comment.
+func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[string]string, personID string, at time.Time) (*ProtectSurface, error) {
 	flowsTo, err := flowsByID(v.FlowsToOtherPS, psIDs)
 	if err != nil {
 		return nil, err
@@ -282,7 +284,7 @@ func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[
 
 	measures := make(map[string]MeasureState, len(v.Measures))
 	for name, m := range v.Measures {
-		measures[name] = m.ToMeasureState()
+		measures[name] = m.ToMeasureState(personID, at)
 	}
 
 	labels := make(map[string]string, len(v.CustomerLabels))
@@ -315,22 +317,42 @@ func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[
 	}, nil
 }
 
-// ToMeasureState converts the flattened history measure to a MeasureState
-func (m HistoryMeasure) ToMeasureState() MeasureState {
-	ms := MeasureState{Assignment: &Assignment{Assigned: m.Assigned}}
+// ToMeasureState converts the flattened history measure to a MeasureState,
+// personID and at are set as last determined by/timestamp (required by the API).
+func (m HistoryMeasure) ToMeasureState(personID string, at time.Time) MeasureState {
+	ts := int(at.Unix())
+
+	ms := MeasureState{Assignment: &Assignment{
+		Assigned:                 m.Assigned,
+		Comment:                  stringValue(m.AssignedComment),
+		LastDeterminedByPersonID: personID,
+		LastDeterminedTimestamp:  ts,
+	}}
 
 	if m.Implemented != nil {
-		ms.Implementation = &Implementation{Implemented: *m.Implemented}
+		ms.Implementation = &Implementation{
+			Implemented:              *m.Implemented,
+			Comment:                  stringValue(m.ImplementedComment),
+			LastDeterminedByPersonID: personID,
+			LastDeterminedTimestamp:  ts,
+		}
 	}
 
 	if m.Evidenced != nil {
-		ms.Evidence = &Evidence{Evidenced: *m.Evidenced}
+		ms.Evidence = &Evidence{
+			Evidenced:                *m.Evidenced,
+			Comment:                  stringValue(m.EvidencedComment),
+			LastDeterminedByPersonID: personID,
+			LastDeterminedTimestamp:  ts,
+		}
 	}
 
 	if m.RiskNoImplementationAccepted != nil || m.RiskNoEvidenceAccepted != nil {
 		ms.RiskAcceptance = &RiskAcceptance{
 			RiskNoImplementationAccepted: m.RiskNoImplementationAccepted != nil && *m.RiskNoImplementationAccepted,
 			RiskNoEvidenceAccepted:       m.RiskNoEvidenceAccepted != nil && *m.RiskNoEvidenceAccepted,
+			LastDeterminedByPersonID:     personID,
+			LastDeterminedTimestamp:      ts,
 		}
 	}
 
@@ -377,4 +399,12 @@ func flowsByID(flows ObjectMap[Flow], psIDs map[string]string) (map[string]Flow,
 	}
 
 	return result, nil
+}
+
+// stringValue returns the string or empty if nil
+func stringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

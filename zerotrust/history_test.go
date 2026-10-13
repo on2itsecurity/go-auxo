@@ -29,14 +29,14 @@ const historyFixture = `{"items":[{
    "in_control_boundary":true,"in_zero_trust_focus":true,"relevance":60,"confidentiality":5,"integrity":5,"availability":5,
    "data_tags":["PHI"],"compliance_tags":[],"soc_tags":[],"customer_labels":[],
    "flows_to_other_ps":{"PS2":{"allow":true}},"flows_from_other_ps":[],"flows_to_outside":{"allow":false},"flows_from_outside":[],
-   "measures":{"data-dlp":{"assigned":true,"assigned_comment":null,"implemented":true,"implemented_comment":null,"evidenced":null,"evidenced_comment":null,"risk_no_implementation_accepted":null,"risk_no_evidence_accepted":false}},
+   "measures":{"data-dlp":{"assigned":true,"assigned_comment":null,"implemented":true,"implemented_comment":"done in Q3","evidenced":null,"evidenced_comment":null,"risk_no_implementation_accepted":null,"risk_no_evidence_accepted":false}},
    "maturity":{"step_1":1,"step_2":1,"step_3":1,"step_4":1,"step_5":1},
    "snapshots":[
     {"timestamp":150,"name":"P_EHR","description":"","main_contact_person_id":null,"security_contact_person_id":"42",
      "in_control_boundary":true,"in_zero_trust_focus":true,"relevance":60,"confidentiality":5,"integrity":5,"availability":5,
      "data_tags":["PHI"],"compliance_tags":[],"soc_tags":[],"customer_labels":[],
      "flows_to_other_ps":{"PS2":{"allow":true}},"flows_from_other_ps":[],"flows_to_outside":{"allow":false},"flows_from_outside":[],
-     "measures":{"data-dlp":{"assigned":true,"assigned_comment":null,"implemented":true,"implemented_comment":null,"evidenced":null,"evidenced_comment":null,"risk_no_implementation_accepted":null,"risk_no_evidence_accepted":false}},
+     "measures":{"data-dlp":{"assigned":true,"assigned_comment":null,"implemented":true,"implemented_comment":"done in Q3","evidenced":null,"evidenced_comment":null,"risk_no_implementation_accepted":null,"risk_no_evidence_accepted":false}},
      "maturity":{"step_1":1,"step_2":1,"step_3":1,"step_4":1,"step_5":1}},
     {"timestamp":120,"name":"P_EHR","description":"","main_contact_person_id":null,"security_contact_person_id":"42",
      "in_control_boundary":true,"in_zero_trust_focus":true,"relevance":60,"confidentiality":5,"integrity":5,"availability":5,
@@ -165,15 +165,30 @@ func TestChanges(t *testing.T) {
 	}
 }
 
+func TestChangesSameTimestamp(t *testing.T) {
+	meta := HistoryMeta{UniquenessKey: "L3"}
+	versions := []LocationVersion{ //Newest first, as returned by the API
+		{Timestamp: 400, Name: "third"},
+		{Timestamp: 400, Name: "second"},
+		{Timestamp: 300, Name: "first"},
+	}
+
+	changes := entityChanges(EntityLocation, meta, versions, func(v *LocationVersion) string { return v.Name })
+	names := []string{changes[0].Name, changes[1].Name, changes[2].Name}
+	if !reflect.DeepEqual(names, []string{"first", "second", "third"}) {
+		t.Errorf("changes with the same timestamp out of order: %v", names)
+	}
+}
+
 func TestToProtectSurface(t *testing.T) {
 	h := loadFixture(t)
 	v := h.ProtectSurfaces[0].ProtectSurfaceVersion
 
-	if _, err := v.ToProtectSurface("PS1", map[string]string{}); err == nil {
+	if _, err := v.ToProtectSurface("PS1", map[string]string{}, "someone@example.com", time.Unix(500, 0)); err == nil {
 		t.Errorf("unknown flow uniqueness key should fail")
 	}
 
-	ps, err := v.ToProtectSurface("PS1", map[string]string{"PS2": "ID2"})
+	ps, err := v.ToProtectSurface("PS1", map[string]string{"PS2": "ID2"}, "someone@example.com", time.Unix(500, 0))
 	if err != nil {
 		t.Fatalf("ToProtectSurface: %v", err)
 	}
@@ -187,6 +202,12 @@ func TestToProtectSurface(t *testing.T) {
 	m := ps.Measures["data-dlp"]
 	if !m.Assignment.Assigned || m.Implementation == nil || !m.Implementation.Implemented || m.Evidence != nil || m.RiskAcceptance == nil || m.RiskAcceptance.RiskNoEvidenceAccepted {
 		t.Errorf("unexpected measure conversion %+v", m)
+	}
+	if m.Implementation.Comment != "done in Q3" || m.Assignment.Comment != "" {
+		t.Errorf("unexpected measure comments %+v %+v", m.Assignment, m.Implementation)
+	}
+	if m.Assignment.LastDeterminedByPersonID != "someone@example.com" || m.RiskAcceptance.LastDeterminedTimestamp != 500 {
+		t.Errorf("measures should carry the person and timestamp, got %+v %+v", m.Assignment, m.RiskAcceptance)
 	}
 }
 
