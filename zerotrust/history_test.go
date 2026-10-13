@@ -184,11 +184,11 @@ func TestToProtectSurface(t *testing.T) {
 	h := loadFixture(t)
 	v := h.ProtectSurfaces[0].ProtectSurfaceVersion
 
-	if _, err := v.ToProtectSurface("PS1", map[string]string{}, "someone@example.com", time.Unix(500, 0)); err == nil {
+	if _, err := v.ToProtectSurface("PS1", map[string]string{}); err == nil {
 		t.Errorf("unknown flow uniqueness key should fail")
 	}
 
-	ps, err := v.ToProtectSurface("PS1", map[string]string{"PS2": "ID2"}, "someone@example.com", time.Unix(500, 0))
+	ps, err := v.ToProtectSurface("PS1", map[string]string{"PS2": "ID2"})
 	if err != nil {
 		t.Fatalf("ToProtectSurface: %v", err)
 	}
@@ -205,9 +205,6 @@ func TestToProtectSurface(t *testing.T) {
 	}
 	if m.Implementation.Comment != "done in Q3" || m.Assignment.Comment != "" {
 		t.Errorf("unexpected measure comments %+v %+v", m.Assignment, m.Implementation)
-	}
-	if m.Assignment.LastDeterminedByPersonID != "someone@example.com" || m.RiskAcceptance.LastDeterminedTimestamp != 500 {
-		t.Errorf("measures should carry the person and timestamp, got %+v %+v", m.Assignment, m.RiskAcceptance)
 	}
 }
 

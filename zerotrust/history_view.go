@@ -268,10 +268,9 @@ func diffFields[V versioned](a, b V) []string {
 
 // ToProtectSurface converts the version to a ProtectSurface which can be written with CreateProtectSurfaceByObject or UpdateProtectSurface.
 // psIDs maps protect surface uniqueness keys to IDs, used to convert the flows to other protect surfaces.
-// personID and at are set as last determined by/timestamp on the measures, as the API requires them and the history does not contain them.
 // The ID is not set, set it to update an existing protect surface.
-// Note that the history does not contain the risk accepted comment.
-func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[string]string, personID string, at time.Time) (*ProtectSurface, error) {
+// Note that the history does not contain the risk accepted comment and who/when determined a measure.
+func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[string]string) (*ProtectSurface, error) {
 	flowsTo, err := flowsByID(v.FlowsToOtherPS, psIDs)
 	if err != nil {
 		return nil, err
@@ -284,7 +283,7 @@ func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[
 
 	measures := make(map[string]MeasureState, len(v.Measures))
 	for name, m := range v.Measures {
-		measures[name] = m.ToMeasureState(personID, at)
+		measures[name] = m.ToMeasureState()
 	}
 
 	labels := make(map[string]string, len(v.CustomerLabels))
@@ -317,33 +316,24 @@ func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[
 	}, nil
 }
 
-// ToMeasureState converts the flattened history measure to a MeasureState,
-// personID and at are set as last determined by/timestamp (required by the API).
-func (m HistoryMeasure) ToMeasureState(personID string, at time.Time) MeasureState {
-	ts := int(at.Unix())
-
+// ToMeasureState converts the flattened history measure to a MeasureState
+func (m HistoryMeasure) ToMeasureState() MeasureState {
 	ms := MeasureState{Assignment: &Assignment{
-		Assigned:                 m.Assigned,
-		Comment:                  stringValue(m.AssignedComment),
-		LastDeterminedByPersonID: personID,
-		LastDeterminedTimestamp:  ts,
+		Assigned: m.Assigned,
+		Comment:  stringValue(m.AssignedComment),
 	}}
 
 	if m.Implemented != nil {
 		ms.Implementation = &Implementation{
-			Implemented:              *m.Implemented,
-			Comment:                  stringValue(m.ImplementedComment),
-			LastDeterminedByPersonID: personID,
-			LastDeterminedTimestamp:  ts,
+			Implemented: *m.Implemented,
+			Comment:     stringValue(m.ImplementedComment),
 		}
 	}
 
 	if m.Evidenced != nil {
 		ms.Evidence = &Evidence{
-			Evidenced:                *m.Evidenced,
-			Comment:                  stringValue(m.EvidencedComment),
-			LastDeterminedByPersonID: personID,
-			LastDeterminedTimestamp:  ts,
+			Evidenced: *m.Evidenced,
+			Comment:   stringValue(m.EvidencedComment),
 		}
 	}
 
@@ -351,8 +341,6 @@ func (m HistoryMeasure) ToMeasureState(personID string, at time.Time) MeasureSta
 		ms.RiskAcceptance = &RiskAcceptance{
 			RiskNoImplementationAccepted: m.RiskNoImplementationAccepted != nil && *m.RiskNoImplementationAccepted,
 			RiskNoEvidenceAccepted:       m.RiskNoEvidenceAccepted != nil && *m.RiskNoEvidenceAccepted,
-			LastDeterminedByPersonID:     personID,
-			LastDeterminedTimestamp:      ts,
 		}
 	}
 
