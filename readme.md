@@ -16,7 +16,7 @@ Version 2.2 introduces `ZeroTrust.GetHistory`, which returns the current content
 
 * `History.Changes()` lists every recorded change (update or delete) with the changed fields, oldest first.
 * `History.AsOf(t)` reconstructs the content of all entities at moment `t`.
-* `ToProtectSurface`, `ToState` and `ToLocation` convert a version back to an object that can be written, i.e. to roll back. As the API requires who/when determined a measure, `ToProtectSurface` takes a person ID and timestamp to set on the measures.
+* `ToProtectSurface`, `ToState` and `ToLocation` convert a version back to an object that can be written, i.e. to roll back.
 
 Measure assignment, implementation and evidence now also support a `Comment`.
 
