@@ -9,7 +9,7 @@ import (
 )
 
 // Version represents the current version of the go-auxo library
-const Version = "2.0.0"
+const Version = "2.2.0"
 
 // Client struct, contains the different "Auxo API sections"
 type Client struct {
