@@ -9,7 +9,7 @@ import (
 // historyFixture follows the shape returned by the API (Tailspin, October 2026):
 //   - location L1 created (1,1) at 90, changed to (2,2) at 100, renamed and (3,3) at 200
 //   - location L2 changed at 100, deleted at 300
-//   - protect surface PS1 with empty customer labels ([]), one measure changed at 150
+//   - protect surface PS1 with empty customer labels ([]), one measure implemented at 150
 //   - state S1 without any change
 const historyFixture = `{"items":[{
  "locations":{"items":[
@@ -29,20 +29,20 @@ const historyFixture = `{"items":[{
    "in_control_boundary":true,"in_zero_trust_focus":true,"relevance":60,"confidentiality":5,"integrity":5,"availability":5,
    "data_tags":["PHI"],"compliance_tags":[],"soc_tags":[],"customer_labels":[],
    "flows_to_other_ps":{"PS2":{"allow":true}},"flows_from_other_ps":[],"flows_to_outside":{"allow":false},"flows_from_outside":[],
-   "measures":{"data-dlp":{"assigned":true,"assigned_comment":null,"implemented":true,"implemented_comment":"done in Q3","evidenced":null,"evidenced_comment":null,"risk_no_implementation_accepted":null,"risk_no_evidence_accepted":false}},
+   "measures":{"data-dlp":{"assignment":{"assigned":true,"last_determined_by_person_id":"a@example.com","last_determined_timestamp":120},"implementation":{"implemented":true,"comment":"done in Q3","last_determined_by_person_id":"b@example.com","last_determined_timestamp":150},"risk_acceptance":{"risk_no_implementation_accepted":false,"risk_no_evidence_accepted":true,"risk_accepted_comment":"no evidence possible","last_determined_by_person_id":"c@example.com","last_determined_timestamp":150}}},
    "maturity":{"step_1":1,"step_2":1,"step_3":1,"step_4":1,"step_5":1},
    "snapshots":[
     {"timestamp":150,"name":"P_EHR","description":"","main_contact_person_id":null,"security_contact_person_id":"42",
      "in_control_boundary":true,"in_zero_trust_focus":true,"relevance":60,"confidentiality":5,"integrity":5,"availability":5,
      "data_tags":["PHI"],"compliance_tags":[],"soc_tags":[],"customer_labels":[],
      "flows_to_other_ps":{"PS2":{"allow":true}},"flows_from_other_ps":[],"flows_to_outside":{"allow":false},"flows_from_outside":[],
-     "measures":{"data-dlp":{"assigned":true,"assigned_comment":null,"implemented":true,"implemented_comment":"done in Q3","evidenced":null,"evidenced_comment":null,"risk_no_implementation_accepted":null,"risk_no_evidence_accepted":false}},
+     "measures":{"data-dlp":{"assignment":{"assigned":true,"last_determined_by_person_id":"a@example.com","last_determined_timestamp":120},"implementation":{"implemented":true,"comment":"done in Q3","last_determined_by_person_id":"b@example.com","last_determined_timestamp":150},"risk_acceptance":{"risk_no_implementation_accepted":false,"risk_no_evidence_accepted":true,"risk_accepted_comment":"no evidence possible","last_determined_by_person_id":"c@example.com","last_determined_timestamp":150}}},
      "maturity":{"step_1":1,"step_2":1,"step_3":1,"step_4":1,"step_5":1}},
     {"timestamp":120,"name":"P_EHR","description":"","main_contact_person_id":null,"security_contact_person_id":"42",
      "in_control_boundary":true,"in_zero_trust_focus":true,"relevance":60,"confidentiality":5,"integrity":5,"availability":5,
      "data_tags":["PHI"],"compliance_tags":[],"soc_tags":[],"customer_labels":[],
      "flows_to_other_ps":{"PS2":{"allow":true}},"flows_from_other_ps":[],"flows_to_outside":{"allow":false},"flows_from_outside":[],
-     "measures":{"data-dlp":{"assigned":true,"assigned_comment":null,"implemented":null,"implemented_comment":null,"evidenced":null,"evidenced_comment":null,"risk_no_implementation_accepted":null,"risk_no_evidence_accepted":null}},
+     "measures":{"data-dlp":{"assignment":{"assigned":true,"last_determined_by_person_id":"a@example.com","last_determined_timestamp":120}}},
      "maturity":{"step_1":1,"step_2":1,"step_3":1,"step_4":1,"step_5":1}}]}]},
  "states":{"items":[
   {"relation_id":"1","uniqueness_key":"S1","deleted":false,"deleted_at":null,"timestamp":null,
@@ -50,13 +50,23 @@ const historyFixture = `{"items":[{
    "exists_on_asset_ids":[],"maintainer":"portal_manual","content":["10.0.0.0/24"],"snapshots":[]}]}
 }]}`
 
+// loadPages merges the given history pages like GetHistory does
+func loadPages(t *testing.T, pages ...string) *History {
+	t.Helper()
+	m := newHistoryMerger(time.Unix(0, 0))
+	for _, page := range pages {
+		p, err := parseHistoryPage([]byte(page))
+		if err != nil {
+			t.Fatalf("parseHistoryPage: %v", err)
+		}
+		m.add(p)
+	}
+	return m.history
+}
+
 func loadFixture(t *testing.T) *History {
 	t.Helper()
-	h, err := parseHistory([]byte(historyFixture), time.Unix(0, 0))
-	if err != nil {
-		t.Fatalf("parseHistory: %v", err)
-	}
-	return h
+	return loadPages(t, historyFixture)
 }
 
 func TestParseHistory(t *testing.T) {
@@ -118,7 +128,7 @@ func TestAsOf(t *testing.T) {
 	}
 
 	pit, _ := h.AsOf(time.Unix(130, 0))
-	if m := pit.ProtectSurfaces[0].Measures["data-dlp"]; m.Implemented != nil {
+	if m := pit.ProtectSurfaces[0].Measures["data-dlp"]; m.Implementation != nil {
 		t.Errorf("AsOf(130): data-dlp should not be implemented yet")
 	}
 
@@ -200,11 +210,11 @@ func TestToProtectSurface(t *testing.T) {
 	}
 
 	m := ps.Measures["data-dlp"]
-	if !m.Assignment.Assigned || m.Implementation == nil || !m.Implementation.Implemented || m.Evidence != nil || m.RiskAcceptance == nil || m.RiskAcceptance.RiskNoEvidenceAccepted {
+	if !m.Assignment.Assigned || m.Implementation == nil || !m.Implementation.Implemented || m.Implementation.Comment != "done in Q3" || m.Evidence != nil {
 		t.Errorf("unexpected measure conversion %+v", m)
 	}
-	if m.Implementation.Comment != "done in Q3" || m.Assignment.Comment != "" {
-		t.Errorf("unexpected measure comments %+v %+v", m.Assignment, m.Implementation)
+	if m.Implementation.LastDeterminedByPersonID != "b@example.com" || m.RiskAcceptance.RiskAcceptedComment != "no evidence possible" {
+		t.Errorf("measures should keep who/when and the risk accepted comment, got %+v %+v", m.Implementation, m.RiskAcceptance)
 	}
 }
 
@@ -214,5 +224,62 @@ func TestToState(t *testing.T) {
 
 	if s.UniquenessKey != "S1" || s.ProtectSurface != "ID1" || s.Location != "LID1" || (*s.Content)[0] != "10.0.0.0/24" {
 		t.Errorf("unexpected state %+v", s)
+	}
+}
+
+// Two pages: every page repeats the current content, deleted_at is only set on the page holding the deletion
+const historyPage1 = `{"items":[{"has_more":true,
+ "protectsurfaces":{"items":[]},"states":{"items":[]},
+ "locations":{"items":[
+  {"relation_id":"1","uniqueness_key":"L1","deleted":false,"deleted_at":null,"timestamp":null,"name":"c","coords":{"lat":3,"long":3},
+   "snapshots":[{"timestamp":300,"name":"c","coords":{"lat":3,"long":3}}]},
+  {"relation_id":"1","uniqueness_key":"L2","deleted":true,"deleted_at":250,"timestamp":null,"name":"x","coords":{"lat":0,"long":0},
+   "snapshots":[{"timestamp":250,"name":"x","coords":{"lat":0,"long":0}}]}]}}]}`
+
+const historyPage2 = `{"items":[{"has_more":false,
+ "protectsurfaces":{"items":[]},"states":{"items":[]},
+ "locations":{"items":[
+  {"relation_id":"1","uniqueness_key":"L1","deleted":false,"deleted_at":null,"timestamp":null,"name":"c","coords":{"lat":3,"long":3},
+   "snapshots":[{"timestamp":200,"name":"b","coords":{"lat":2,"long":2}},{"timestamp":100,"name":"a","coords":{"lat":1,"long":1}}]},
+  {"relation_id":"1","uniqueness_key":"L2","deleted":true,"deleted_at":null,"timestamp":null,"name":"x","coords":{"lat":0,"long":0},
+   "snapshots":[{"timestamp":150,"name":"x","coords":{"lat":0,"long":0}}]},
+  {"relation_id":"1","uniqueness_key":"L3","deleted":true,"deleted_at":null,"timestamp":null,"name":"old","coords":{"lat":0,"long":0},
+   "snapshots":[{"timestamp":120,"name":"old","coords":{"lat":0,"long":0}}]}]}}]}`
+
+func TestMergePages(t *testing.T) {
+	h := loadPages(t, historyPage1, historyPage2)
+
+	if len(h.Locations) != 3 {
+		t.Fatalf("expected 3 locations, got %d", len(h.Locations))
+	}
+
+	l1 := h.Locations[0]
+	ts := []int64{}
+	for _, v := range l1.Versions {
+		ts = append(ts, v.Timestamp)
+	}
+	if !reflect.DeepEqual(ts, []int64{300, 200, 100}) {
+		t.Errorf("versions should be merged newest first, got %v", ts)
+	}
+
+	l2 := h.Locations[1]
+	if !l2.Deleted || l2.DeletedAt != 250 || len(l2.Versions) != 2 {
+		t.Errorf("deletion should survive the merge, got %+v with %d versions", l2.HistoryMeta, len(l2.Versions))
+	}
+
+	pit, _ := h.AsOf(time.Unix(240, 0))
+	if len(pit.Locations) != 2 || pit.Locations[1].UniquenessKey != "L2" {
+		t.Errorf("AsOf(240) should hold L1 and L2 (L3 deleted at its newest version, 120), got %d locations", len(pit.Locations))
+	}
+
+	changes := h.Changes()
+	last := changes[len(changes)-1]
+	if last.UniquenessKey != "L1" || last.Timestamp != 300 {
+		t.Errorf("unexpected last change %+v", last)
+	}
+	for _, c := range changes {
+		if c.UniquenessKey == "L3" && c.Type != ChangeDelete {
+			t.Errorf("L3 without deleted_at should be deleted at its newest version, got %s", c.Type)
+		}
 	}
 }

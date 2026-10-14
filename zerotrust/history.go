@@ -18,6 +18,7 @@ import (
 // so the newest version equals the current content and the content at creation is never recorded.
 // A deletion also records a version (at DeletedAt), holding the content at the time of deletion.
 // Entities deleted before From are not returned.
+// The API returns the versions in pages, GetHistory requests all pages and merges them.
 type History struct {
 	From            time.Time                // Lower bound used for the request
 	ProtectSurfaces []*ProtectSurfaceHistory // All protect surfaces, including the ones deleted at or after From
@@ -30,7 +31,7 @@ type HistoryMeta struct {
 	RelationID    string `json:"relation_id"`    //Relation the entity belongs to
 	UniquenessKey string `json:"uniqueness_key"` //Uniqueness key, stable over the life of the entity
 	Deleted       bool   `json:"deleted"`        //Is the entity deleted
-	DeletedAt     int64  `json:"deleted_at"`     //Unix time of the deletion, 0 if not deleted
+	DeletedAt     int64  `json:"deleted_at"`     //Unix time of the deletion, 0 if not deleted or unknown (deletions from before the history was recorded)
 }
 
 // ProtectSurfaceHistory holds the current content of a protect surface plus its versions
@@ -43,40 +44,27 @@ type ProtectSurfaceHistory struct {
 // ProtectSurfaceVersion holds the content of a protect surface at a moment in time.
 // Flows are keyed by the uniqueness key of the other protect surface (not by ID).
 type ProtectSurfaceVersion struct {
-	Timestamp               int64                     `json:"timestamp"`                  //Unix time this version was recorded, 0 for the current content
-	Name                    string                    `json:"name"`                       //Name of the protect surface
-	Description             string                    `json:"description"`                //Description of the protect surface
-	MainContactPersonID     string                    `json:"main_contact_person_id"`     //Contact Person ID, empty if not set
-	SecurityContactPersonID string                    `json:"security_contact_person_id"` //Security Person ID, empty if not set
-	InControlBoundary       bool                      `json:"in_control_boundary"`        //Is this protect surface in the control boundary
-	InZeroTrustFocus        bool                      `json:"in_zero_trust_focus"`        //Is this protect surface in focus
-	Relevance               int                       `json:"relevance"`                  //How important (0=not-100=very) is this protect service
-	Confidentiality         int                       `json:"confidentiality"`            //Score normally between 1-5
-	Integrity               int                       `json:"integrity"`                  //Score normally between 1-5
-	Availability            int                       `json:"availability"`               //Score normally between 1-5
-	DataTags                []string                  `json:"data_tags"`                  //What data holds this protect suface, f.e. PII, PCI
-	ComplianceTags          []string                  `json:"compliance_tags"`            //What compliance frameworks should be respected
-	SocTags                 []string                  `json:"soc_tags"`                   //Set by the SOC
-	CustomerLabels          ObjectMap[string]         `json:"customer_labels"`            //Customer specific Key=Value pairs
-	FlowsToOtherPS          ObjectMap[Flow]           `json:"flows_to_other_ps"`          //Other PS uniqueness key -> Flow
-	FlowsFromOtherPS        ObjectMap[Flow]           `json:"flows_from_other_ps"`        //Other PS uniqueness key -> Flow
-	FlowsToOutside          Flow                      `json:"flows_to_outside"`           //Flow
-	FlowsFromOutside        Flow                      `json:"flows_from_outside"`         //Flow
-	Measures                ObjectMap[HistoryMeasure] `json:"measures"`                   //Measure name -> Measure
-	Maturity                Maturity                  `json:"maturity"`                   //Maturity (per zero trust step)
-}
-
-// HistoryMeasure holds the (flattened) measure state as recorded in the history.
-// Unlike MeasureState it does not contain who determined it and when, nor the risk accepted comment.
-type HistoryMeasure struct {
-	Assigned                     bool    `json:"assigned"`                        //Is the measure assigned
-	AssignedComment              *string `json:"assigned_comment"`                //Comment on the assignment
-	Implemented                  *bool   `json:"implemented"`                     //Is the measure implemented, nil if not determined
-	ImplementedComment           *string `json:"implemented_comment"`             //Comment on the implementation
-	Evidenced                    *bool   `json:"evidenced"`                       //Is the measure evidenced, nil if not determined
-	EvidencedComment             *string `json:"evidenced_comment"`               //Comment on the evidence
-	RiskNoImplementationAccepted *bool   `json:"risk_no_implementation_accepted"` //Is the risk of no implementation accepted, nil if not determined
-	RiskNoEvidenceAccepted       *bool   `json:"risk_no_evidence_accepted"`       //Is the risk of no evidence accepted, nil if not determined
+	Timestamp               int64                   `json:"timestamp"`                  //Unix time this version was recorded, 0 for the current content
+	Name                    string                  `json:"name"`                       //Name of the protect surface
+	Description             string                  `json:"description"`                //Description of the protect surface
+	MainContactPersonID     string                  `json:"main_contact_person_id"`     //Contact Person ID, empty if not set
+	SecurityContactPersonID string                  `json:"security_contact_person_id"` //Security Person ID, empty if not set
+	InControlBoundary       bool                    `json:"in_control_boundary"`        //Is this protect surface in the control boundary
+	InZeroTrustFocus        bool                    `json:"in_zero_trust_focus"`        //Is this protect surface in focus
+	Relevance               int                     `json:"relevance"`                  //How important (0=not-100=very) is this protect service
+	Confidentiality         int                     `json:"confidentiality"`            //Score normally between 1-5
+	Integrity               int                     `json:"integrity"`                  //Score normally between 1-5
+	Availability            int                     `json:"availability"`               //Score normally between 1-5
+	DataTags                []string                `json:"data_tags"`                  //What data holds this protect suface, f.e. PII, PCI
+	ComplianceTags          []string                `json:"compliance_tags"`            //What compliance frameworks should be respected
+	SocTags                 []string                `json:"soc_tags"`                   //Set by the SOC
+	CustomerLabels          ObjectMap[string]       `json:"customer_labels"`            //Customer specific Key=Value pairs
+	FlowsToOtherPS          ObjectMap[Flow]         `json:"flows_to_other_ps"`          //Other PS uniqueness key -> Flow
+	FlowsFromOtherPS        ObjectMap[Flow]         `json:"flows_from_other_ps"`        //Other PS uniqueness key -> Flow
+	FlowsToOutside          Flow                    `json:"flows_to_outside"`           //Flow
+	FlowsFromOutside        Flow                    `json:"flows_from_outside"`         //Flow
+	Measures                ObjectMap[MeasureState] `json:"measures"`                   //Measure name -> Measure
+	Maturity                Maturity                `json:"maturity"`                   //Maturity (per zero trust step)
 }
 
 // StateHistory holds the current content of a state plus its versions
@@ -146,7 +134,7 @@ func isEmptyJSONArray(data []byte) bool {
 	return bytes.Equal(bytes.Join(bytes.Fields(data), nil), []byte("[]"))
 }
 
-// historyPayload is the single object returned (wrapped in items) by the history call
+// historyPayload is the single object returned (wrapped in items) by a page of the history call
 type historyPayload struct {
 	ProtectSurfaces struct {
 		Items []*ProtectSurfaceHistory `json:"items"`
@@ -157,13 +145,17 @@ type historyPayload struct {
 	Locations struct {
 		Items []*LocationHistory `json:"items"`
 	} `json:"locations"`
+	HasMore bool `json:"has_more"`
 }
+
+// historyPageSize is the number of versions requested per page (maximum allowed by the API)
+const historyPageSize = 500
 
 // --- Functions ---
 
 // GetHistory will get the history of all protect surfaces, states and locations of the relation (based upon used API Token),
 // with every version recorded at or after from (no upper bound).
-// The response can be large for an early from, consider passing a context with a generous timeout.
+// All pages are requested and merged, consider passing a context with a generous timeout for an early from.
 func (zt *ZeroTrust) GetHistory(ctx context.Context, from time.Time) (*History, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -174,20 +166,35 @@ func (zt *ZeroTrust) GetHistory(ctx context.Context, from time.Time) (*History, 
 		ts = 0
 	}
 
-	call := fmt.Sprintf("state/history/?timestamp_from=%d", ts)
 	method := "GET"
+	h := newHistoryMerger(time.Unix(ts, 0))
 
-	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
+	for page := 1; ; page++ {
+		call := fmt.Sprintf("state/history/?timestamp_from=%d&page_number=%d&page_size=%d", ts, page, historyPageSize)
 
-	if err != nil {
-		return nil, err
+		result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
+
+		if err != nil {
+			return nil, err
+		}
+
+		payload, err := parseHistoryPage(result)
+
+		if err != nil {
+			return nil, err
+		}
+
+		//Stop on an empty page as well, to never loop endlessly
+		if versions := h.add(payload); !payload.HasMore || versions == 0 {
+			break
+		}
 	}
 
-	return parseHistory(result, time.Unix(ts, 0))
+	return h.history, nil
 }
 
-// parseHistory unwraps the history call response
-func parseHistory(data []byte, from time.Time) (*History, error) {
+// parseHistoryPage unwraps a page of the history call response
+func parseHistoryPage(data []byte) (*historyPayload, error) {
 	payloads, err := utils.UnwrapItems[historyPayload](data)
 
 	if err != nil {
@@ -198,10 +205,73 @@ func parseHistory(data []byte, from time.Time) (*History, error) {
 		return nil, fmt.Errorf("Expected exactly one history item, got %d", len(payloads))
 	}
 
-	return &History{
-		From:            from,
-		ProtectSurfaces: payloads[0].ProtectSurfaces.Items,
-		States:          payloads[0].States.Items,
-		Locations:       payloads[0].Locations.Items,
-	}, nil
+	return payloads[0], nil
+}
+
+// historyMerger merges the pages of the history call into a single History.
+// Every page repeats the current content of all entities with only the versions on that page,
+// pages are newest first, so appending the versions keeps them newest first.
+type historyMerger struct {
+	history         *History
+	protectSurfaces map[string]*ProtectSurfaceHistory
+	states          map[string]*StateHistory
+	locations       map[string]*LocationHistory
+}
+
+func newHistoryMerger(from time.Time) *historyMerger {
+	return &historyMerger{
+		history:         &History{From: from},
+		protectSurfaces: make(map[string]*ProtectSurfaceHistory),
+		states:          make(map[string]*StateHistory),
+		locations:       make(map[string]*LocationHistory),
+	}
+}
+
+// add merges a page and returns the number of versions on it
+func (m *historyMerger) add(p *historyPayload) int {
+	versions := 0
+
+	for _, e := range p.ProtectSurfaces.Items {
+		versions += len(e.Versions)
+		if known, ok := m.protectSurfaces[e.UniquenessKey]; ok {
+			known.Versions = append(known.Versions, e.Versions...)
+			known.merge(e.HistoryMeta)
+			continue
+		}
+		m.protectSurfaces[e.UniquenessKey] = e
+		m.history.ProtectSurfaces = append(m.history.ProtectSurfaces, e)
+	}
+
+	for _, e := range p.States.Items {
+		versions += len(e.Versions)
+		if known, ok := m.states[e.UniquenessKey]; ok {
+			known.Versions = append(known.Versions, e.Versions...)
+			known.merge(e.HistoryMeta)
+			continue
+		}
+		m.states[e.UniquenessKey] = e
+		m.history.States = append(m.history.States, e)
+	}
+
+	for _, e := range p.Locations.Items {
+		versions += len(e.Versions)
+		if known, ok := m.locations[e.UniquenessKey]; ok {
+			known.Versions = append(known.Versions, e.Versions...)
+			known.merge(e.HistoryMeta)
+			continue
+		}
+		m.locations[e.UniquenessKey] = e
+		m.history.Locations = append(m.history.Locations, e)
+	}
+
+	return versions
+}
+
+// merge combines the deletion status of the same entity from another page,
+// deleted_at is only set on the page holding the deletion
+func (m *HistoryMeta) merge(other HistoryMeta) {
+	m.Deleted = m.Deleted || other.Deleted
+	if other.DeletedAt > m.DeletedAt {
+		m.DeletedAt = other.DeletedAt
+	}
 }

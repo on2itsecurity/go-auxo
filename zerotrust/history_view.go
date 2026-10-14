@@ -147,7 +147,7 @@ func (h *History) Changes() []*Change {
 // A version holds the content after the change at its timestamp, so the content at ts is the newest version at or before ts.
 func versionAt[V versioned](meta HistoryMeta, current V, versions []V, ts int64) (V, bool, bool) {
 	var none V
-	if meta.Deleted && meta.DeletedAt <= ts {
+	if deletedAt, deleted := deletion(meta, versions); deleted && deletedAt <= ts {
 		return none, false, false
 	}
 
@@ -181,6 +181,8 @@ func entityChanges[V versioned](et EntityType, meta HistoryMeta, versions []V, n
 	}
 	sort.SliceStable(asc, func(i, j int) bool { return versionTimestamp(asc[i]) < versionTimestamp(asc[j]) })
 
+	deletedAt, deleted := deletion(meta, versions)
+
 	changes := make([]*Change, 0, len(asc))
 	for i, v := range asc {
 		c := &Change{
@@ -192,7 +194,7 @@ func entityChanges[V versioned](et EntityType, meta HistoryMeta, versions []V, n
 			After:         v,
 		}
 
-		if meta.Deleted && i == len(asc)-1 && c.Timestamp == meta.DeletedAt {
+		if deleted && i == len(asc)-1 && c.Timestamp == deletedAt {
 			//The deletion records the content at the time of deletion
 			c.Type = ChangeDelete
 			c.Before = v
@@ -206,6 +208,23 @@ func entityChanges[V versioned](et EntityType, meta HistoryMeta, versions []V, n
 	}
 
 	return changes
+}
+
+// deletion returns when the entity was deleted and whether it is deleted.
+// When the deletion time is unknown (deleted before the history was recorded), the newest version is taken as the deletion.
+func deletion[V versioned](meta HistoryMeta, versions []V) (int64, bool) {
+	if !meta.Deleted || meta.DeletedAt != 0 {
+		return meta.DeletedAt, meta.Deleted
+	}
+
+	var newest int64
+	for i := range versions {
+		if ts := versionTimestamp(&versions[i]); ts > newest {
+			newest = ts
+		}
+	}
+
+	return newest, true
 }
 
 // versionTimestamp returns the timestamp of a version
@@ -269,7 +288,6 @@ func diffFields[V versioned](a, b V) []string {
 // ToProtectSurface converts the version to a ProtectSurface which can be written with CreateProtectSurfaceByObject or UpdateProtectSurface.
 // psIDs maps protect surface uniqueness keys to IDs, used to convert the flows to other protect surfaces.
 // The ID is not set, set it to update an existing protect surface.
-// Note that the history does not contain the risk accepted comment and who/when determined a measure.
 func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[string]string) (*ProtectSurface, error) {
 	flowsTo, err := flowsByID(v.FlowsToOtherPS, psIDs)
 	if err != nil {
@@ -283,7 +301,7 @@ func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[
 
 	measures := make(map[string]MeasureState, len(v.Measures))
 	for name, m := range v.Measures {
-		measures[name] = m.ToMeasureState()
+		measures[name] = m
 	}
 
 	labels := make(map[string]string, len(v.CustomerLabels))
@@ -314,37 +332,6 @@ func (v ProtectSurfaceVersion) ToProtectSurface(uniquenessKey string, psIDs map[
 		Measures:                measures,
 		Maturity:                v.Maturity,
 	}, nil
-}
-
-// ToMeasureState converts the flattened history measure to a MeasureState
-func (m HistoryMeasure) ToMeasureState() MeasureState {
-	ms := MeasureState{Assignment: &Assignment{
-		Assigned: m.Assigned,
-		Comment:  stringValue(m.AssignedComment),
-	}}
-
-	if m.Implemented != nil {
-		ms.Implementation = &Implementation{
-			Implemented: *m.Implemented,
-			Comment:     stringValue(m.ImplementedComment),
-		}
-	}
-
-	if m.Evidenced != nil {
-		ms.Evidence = &Evidence{
-			Evidenced: *m.Evidenced,
-			Comment:   stringValue(m.EvidencedComment),
-		}
-	}
-
-	if m.RiskNoImplementationAccepted != nil || m.RiskNoEvidenceAccepted != nil {
-		ms.RiskAcceptance = &RiskAcceptance{
-			RiskNoImplementationAccepted: m.RiskNoImplementationAccepted != nil && *m.RiskNoImplementationAccepted,
-			RiskNoEvidenceAccepted:       m.RiskNoEvidenceAccepted != nil && *m.RiskNoEvidenceAccepted,
-		}
-	}
-
-	return ms
 }
 
 // ToState converts the version to a State which can be written with CreateStateByObject or UpdateState.
@@ -387,12 +374,4 @@ func flowsByID(flows ObjectMap[Flow], psIDs map[string]string) (map[string]Flow,
 	}
 
 	return result, nil
-}
-
-// stringValue returns the string or empty if nil
-func stringValue(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }
