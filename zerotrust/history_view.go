@@ -52,6 +52,7 @@ const (
 type ChangeType string
 
 const (
+	ChangeCreate ChangeType = "create" // Entity was created
 	ChangeUpdate ChangeType = "update" // Content was changed
 	ChangeDelete ChangeType = "delete" // Entity was deleted
 )
@@ -62,12 +63,12 @@ type Change struct {
 	EntityType    EntityType // Type of the changed entity
 	UniquenessKey string     // Uniqueness key of the changed entity
 	Name          string     // Name (protect surface, location) or description (state) of the entity
-	Type          ChangeType // Update or delete
+	Type          ChangeType // Create, update or delete
 	// Changed fields as json names, map entries as "field.key" (f.e. "measures.data-dlp").
-	// nil when Before is unknown, empty when no visible field changed.
+	// nil for a create or when Before is unknown, empty when no visible field changed.
 	Fields []string
 	// Content before and after the change: *ProtectSurfaceVersion, *StateVersion or *LocationVersion.
-	// Before is nil for the first recorded change (content before it was not recorded), After is nil for a delete.
+	// Before is nil for a create and for the first recorded change (content before it was not recorded), After is nil for a delete.
 	Before any
 	After  any
 }
@@ -81,8 +82,11 @@ type versioned interface {
 
 // AsOf reconstructs the content of all entities at moment t, which must not be before h.From.
 //
+// Protect surfaces created after t are left out, together with their states.
+//
 // Limitations of the recorded history:
-//   - Creation is not recorded, entities created after t but never deleted are included.
+//   - The creation date is only known for protect surfaces, locations and states (of protect surfaces created before t) created after t are included.
+//   - Protect surfaces with CreateDate CreationRecordedFrom have an unknown creation time, they are left out before and included after that moment.
 //   - The content before the first recorded change is unknown, those entities are returned with Exact set to false
 //     and the content of their oldest recorded version.
 func (h *History) AsOf(t time.Time) (*PointInTime, error) {
@@ -93,6 +97,13 @@ func (h *History) AsOf(t time.Time) (*PointInTime, error) {
 	ts := t.Unix()
 	pit := &PointInTime{At: t}
 
+	createdLater := make(map[string]bool) //Protect surfaces created after t, by uniqueness key
+	for _, ps := range h.ProtectSurfaces {
+		if ps.CreateDate > ts {
+			createdLater[ps.UniquenessKey] = true
+		}
+	}
+
 	for _, ps := range h.ProtectSurfaces {
 		if v, exact, ok := versionAt(ps.HistoryMeta, ps.ProtectSurfaceVersion, ps.Versions, ts); ok {
 			pit.ProtectSurfaces = append(pit.ProtectSurfaces, &ProtectSurfaceAt{UniquenessKey: ps.UniquenessKey, ProtectSurfaceVersion: v, Exact: exact})
@@ -100,6 +111,9 @@ func (h *History) AsOf(t time.Time) (*PointInTime, error) {
 	}
 
 	for _, s := range h.States {
+		if createdLater[s.ProtectSurfaceUniquenessKey] {
+			continue //A state cannot exist before its protect surface
+		}
 		if v, exact, ok := versionAt(s.HistoryMeta, s.StateVersion, s.Versions, ts); ok {
 			pit.States = append(pit.States, &StateAt{UniquenessKey: s.UniquenessKey, ProtectSurfaceUniquenessKey: s.ProtectSurfaceUniquenessKey, StateVersion: v, Exact: exact})
 		}
@@ -143,10 +157,13 @@ func (h *History) Changes() []*Change {
 	return changes
 }
 
-// versionAt returns the content of an entity at ts, whether it is exact and whether the entity existed (was not deleted).
+// versionAt returns the content of an entity at ts, whether it is exact and whether the entity existed (created and not deleted).
 // A version holds the content after the change at its timestamp, so the content at ts is the newest version at or before ts.
 func versionAt[V versioned](meta HistoryMeta, current V, versions []V, ts int64) (V, bool, bool) {
 	var none V
+	if meta.CreateDate > ts {
+		return none, false, false
+	}
 	if deletedAt, deleted := deletion(meta, versions); deleted && deletedAt <= ts {
 		return none, false, false
 	}
@@ -202,6 +219,9 @@ func entityChanges[V versioned](et EntityType, meta HistoryMeta, versions []V, n
 		} else if i > 0 {
 			c.Before = asc[i-1]
 			c.Fields = diffFields(*asc[i-1], *v)
+		} else if meta.CreateDate != 0 && c.Timestamp == meta.CreateDate {
+			//Creation records a version at the creation date
+			c.Type = ChangeCreate
 		}
 
 		changes = append(changes, c)

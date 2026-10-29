@@ -283,3 +283,80 @@ func TestMergePages(t *testing.T) {
 		}
 	}
 }
+
+// Creation dates (live data, October 2026): the creation records a version at create_date,
+// a protect surface from before the history keeps its create_date on every page.
+//   - PS_OLD created at 50 (before From), first recorded change at 200
+//   - PS_NEW created at 120, its state S_NEW never changed
+//   - PS_OLD has state S_OLD, never changed
+const historyCreatePage1 = `{"items":[{"has_more":true,
+ "protectsurfaces":{"items":[
+  {"relation_id":"1","uniqueness_key":"PS_OLD","create_date":50,"deleted":false,"deleted_at":null,"timestamp":null,"name":"old-renamed",
+   "snapshots":[{"timestamp":200,"create_date":50,"name":"old-renamed"}]},
+  {"relation_id":"1","uniqueness_key":"PS_NEW","create_date":120,"deleted":false,"deleted_at":null,"timestamp":null,"name":"new",
+   "snapshots":[]}]},
+ "states":{"items":[
+  {"relation_id":"1","uniqueness_key":"S_OLD","protectsurface_uniqueness_key":"PS_OLD","deleted":false,"deleted_at":null,"timestamp":null,"description":"old","snapshots":[]},
+  {"relation_id":"1","uniqueness_key":"S_NEW","protectsurface_uniqueness_key":"PS_NEW","deleted":false,"deleted_at":null,"timestamp":null,"description":"new","snapshots":[]}]},
+ "locations":{"items":[]}}]}`
+
+const historyCreatePage2 = `{"items":[{"has_more":false,
+ "protectsurfaces":{"items":[
+  {"relation_id":"1","uniqueness_key":"PS_OLD","create_date":50,"deleted":false,"deleted_at":null,"timestamp":null,"name":"old-renamed","snapshots":[]},
+  {"relation_id":"1","uniqueness_key":"PS_NEW","create_date":120,"deleted":false,"deleted_at":null,"timestamp":null,"name":"new",
+   "snapshots":[{"timestamp":120,"create_date":120,"name":"new"}]}]},
+ "states":{"items":[]},"locations":{"items":[]}}]}`
+
+func TestCreateDate(t *testing.T) {
+	h := loadPages(t, historyCreatePage1, historyCreatePage2)
+	h.From = time.Unix(100, 0)
+
+	if h.ProtectSurfaces[0].CreateDate != 50 || h.ProtectSurfaces[1].CreateDate != 120 {
+		t.Fatalf("unexpected create dates %d %d", h.ProtectSurfaces[0].CreateDate, h.ProtectSurfaces[1].CreateDate)
+	}
+
+	tests := []struct {
+		at       int64
+		pss      []string
+		states   []string
+		oldExact bool
+	}{
+		{at: 110, pss: []string{"PS_OLD"}, states: []string{"S_OLD"}, oldExact: false}, //PS_NEW and its state not created yet
+		{at: 120, pss: []string{"PS_OLD", "PS_NEW"}, states: []string{"S_OLD", "S_NEW"}, oldExact: false},
+		{at: 200, pss: []string{"PS_OLD", "PS_NEW"}, states: []string{"S_OLD", "S_NEW"}, oldExact: true},
+	}
+
+	for _, tc := range tests {
+		pit, err := h.AsOf(time.Unix(tc.at, 0))
+		if err != nil {
+			t.Fatalf("AsOf(%d): %v", tc.at, err)
+		}
+		pss, states := []string{}, []string{}
+		for _, ps := range pit.ProtectSurfaces {
+			pss = append(pss, ps.UniquenessKey)
+		}
+		for _, s := range pit.States {
+			states = append(states, s.UniquenessKey)
+		}
+		if !reflect.DeepEqual(pss, tc.pss) || !reflect.DeepEqual(states, tc.states) {
+			t.Errorf("AsOf(%d): protect surfaces %v states %v, want %v %v", tc.at, pss, states, tc.pss, tc.states)
+		}
+		if pit.ProtectSurfaces[0].Exact != tc.oldExact {
+			t.Errorf("AsOf(%d): PS_OLD exact=%v, want %v", tc.at, pit.ProtectSurfaces[0].Exact, tc.oldExact)
+		}
+		if len(pit.ProtectSurfaces) > 1 && !pit.ProtectSurfaces[1].Exact {
+			t.Errorf("AsOf(%d): PS_NEW should be exact from its creation", tc.at)
+		}
+	}
+
+	types := map[string]ChangeType{}
+	for _, c := range h.Changes() {
+		types[c.UniquenessKey] = c.Type
+		if c.Before != nil || c.Fields != nil {
+			t.Errorf("%s: first change should have no Before and no Fields", c.UniquenessKey)
+		}
+	}
+	if types["PS_NEW"] != ChangeCreate || types["PS_OLD"] != ChangeUpdate {
+		t.Errorf("PS_NEW should be a create and PS_OLD an update (created before From), got %v", types)
+	}
+}

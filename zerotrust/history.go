@@ -15,7 +15,8 @@ import (
 //
 // Entities are linked by uniqueness key only, internal IDs are not part of the history.
 // A version holds the content as it was right AFTER the change at its timestamp,
-// so the newest version equals the current content and the content at creation is never recorded.
+// so the newest version equals the current content.
+// Creation also records a version, at CreateDate. CreateDate is only returned for protect surfaces.
 // A deletion also records a version (at DeletedAt), holding the content at the time of deletion.
 // Entities deleted before From are not returned.
 // The API returns the versions in pages, GetHistory requests all pages and merges them.
@@ -32,7 +33,13 @@ type HistoryMeta struct {
 	UniquenessKey string `json:"uniqueness_key"` //Uniqueness key, stable over the life of the entity
 	Deleted       bool   `json:"deleted"`        //Is the entity deleted
 	DeletedAt     int64  `json:"deleted_at"`     //Unix time of the deletion, 0 if not deleted or unknown (deletions from before the history was recorded)
+	CreateDate    int64  `json:"create_date"`    //Unix time of the creation, CreationRecordedFrom if unknown, 0 if not returned (states and locations)
 }
+
+// CreationRecordedFrom (16 September 2026 00:00 UTC) is the CreateDate of a protect surface whose creation time is unknown:
+// no stored creation time and no time-based uniqueness key. Most were created before this moment, but a protect surface
+// with a manually set uniqueness key created after it, before the API stored the creation time, gets it as well.
+const CreationRecordedFrom int64 = 1789516800
 
 // ProtectSurfaceHistory holds the current content of a protect surface plus its versions
 type ProtectSurfaceHistory struct {
@@ -270,6 +277,9 @@ func (m *historyMerger) add(p *historyPayload) int {
 // merge combines the deletion status of the same entity from another page,
 // deleted_at is only set on the page holding the deletion
 func (m *HistoryMeta) merge(other HistoryMeta) {
+	if m.CreateDate == 0 {
+		m.CreateDate = other.CreateDate
+	}
 	m.Deleted = m.Deleted || other.Deleted
 	if other.DeletedAt > m.DeletedAt {
 		m.DeletedAt = other.DeletedAt

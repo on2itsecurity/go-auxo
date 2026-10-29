@@ -14,13 +14,13 @@ Check the tags for the most current version.
 
 Version 2.2 introduces `ZeroTrust.GetHistory`, which returns the current content of all protect surfaces, states and locations with their recorded versions since a given moment, plus helpers to work with it:
 
-* `History.Changes()` lists every recorded change (update or delete) with the changed fields, oldest first.
+* `History.Changes()` lists every recorded change (create, update or delete) with the changed fields, oldest first.
 * `History.AsOf(t)` reconstructs the content of all entities at moment `t`.
 * `ToProtectSurface`, `ToState` and `ToLocation` convert a version back to an object that can be written, i.e. to roll back.
 
 Measure assignment, implementation and evidence now also support a `Comment`.
 
-The history is keyed by uniqueness key, not by ID. Creation is not recorded, so the content before the first recorded change is unknown (`Exact` is `false` in `AsOf`).
+The history is keyed by uniqueness key, not by ID. Protect surfaces carry a `CreateDate`, `AsOf` leaves out protect surfaces created after `t` together with their states. States and locations have no creation date, so those created later are still included. A protect surface with an unknown creation time has `CreateDate` `zerotrust.CreationRecordedFrom` (16 September 2026). The content before the oldest recorded version is unknown (`Exact` is `false` in `AsOf`).
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
