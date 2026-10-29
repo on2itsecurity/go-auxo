@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -103,7 +103,7 @@ func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data
 		return []byte{}, err
 	}
 
-	body, err = ioutil.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 
 	if err != nil {
 		if debug {
