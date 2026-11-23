@@ -10,6 +10,17 @@ AUXO API documentation: https://api.on2it.net/v3/doc
 
 Check the tags for the most current version.
 
+## Version 2.3.x
+
+Version 2.3 introduces `ZeroTrust.GetProtectSurfaceCompliance`, which returns the compliance status of a protect surface per framework version that applies through its compliance tags: the number of compliant and required measures, the verdict, the gaps (assigned but not ok, with their fitness state) and the required measures that are not assigned.
+
+```go
+compliance, err := auxoClient.ZeroTrust.GetProtectSurfaceCompliance(ctx, protectSurface.ID)
+for _, c := range compliance {
+    fmt.Printf("%s: %d/%d compliant=%v\n", c.Name, c.CompliantCount, c.TotalCount, c.Verdict)
+}
+```
+
 ## Version 2.2.x
 
 Version 2.2 introduces `ZeroTrust.GetHistory`, which returns the current content of all protect surfaces, states and locations with their recorded versions since a given moment, plus helpers to work with it:
