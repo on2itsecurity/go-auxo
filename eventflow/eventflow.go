@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/on2itsecurity/go-auxo/v2/apiclient"
 )
@@ -93,10 +94,6 @@ func NewEventFlow(address, token string, debug bool) *EventFlow {
 
 // PostEventQueue will post the events in the queue to the EventFlow API and empty the queue
 func (e *EventFlow) PostEventQueue(ctx context.Context, q *EventQueue) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	if len(q.GetEventQueue()) == 0 {
 		return fmt.Errorf("No events in queue")
 	}
@@ -121,10 +118,6 @@ func (e *EventFlow) PostEventQueue(ctx context.Context, q *EventQueue) error {
 // The events needs to be given in base64, multiple events at once, can be seperated by a new-line (`\n`).
 // When switching from the AddEvent method a new API token is required.
 func (e *EventFlow) StoreEventsInBase64(ctx context.Context, event string) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	uri := "store-events"
 
 	_, err := e.apiClient.ApiCall(ctx, e.apiEndpoint+uri, "POST", event)
@@ -140,12 +133,8 @@ func (e *EventFlow) StoreEventsInBase64(ctx context.Context, event string) error
 // DEPRECATED: Use StoreEventsInBase64 instead
 // Multiple events can be added at once, by passing them in base64 seperated by a new-line (`\n`).
 func (e *EventFlow) AddEvent(ctx context.Context, assetID string, eventInBase64 string) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	sensordatatype := "on2it_generic_webhook"
-	uri := fmt.Sprintf("store?sensorid=on2itassetid:%s&sensordatatype=%s", assetID, sensordatatype)
+	uri := fmt.Sprintf("store?sensorid=on2itassetid:%s&sensordatatype=%s", url.QueryEscape(assetID), url.QueryEscape(sensordatatype))
 
 	_, err := e.apiClient.ApiCall(ctx, e.apiEndpoint+uri, "POST", eventInBase64)
 

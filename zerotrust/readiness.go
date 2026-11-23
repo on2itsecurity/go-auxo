@@ -3,6 +3,7 @@ package zerotrust
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 
 	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
@@ -63,10 +64,6 @@ type AssessmentSummary struct {
 
 // GetAssessmentQuestions will return all questions
 func (zt *ZeroTrust) GetReadinessQuestions(ctx context.Context) (*ReadinessQuestions, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "get-base-questions"
 	method := "GET"
 
@@ -88,10 +85,6 @@ func (zt *ZeroTrust) GetReadinessQuestions(ctx context.Context) (*ReadinessQuest
 // PostAssessmentAnswers will post the answers (ReadinessAnswers as object)
 // Returns the posted ReadinessAnswers object or an error.
 func (zt *ZeroTrust) PostReadinessAnswers(ctx context.Context, answers ReadinessAnswers) (*ReadinessAnswers, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "create-assessment"
 	method := "POST"
 
@@ -117,10 +110,6 @@ func (zt *ZeroTrust) PostReadinessAnswers(ctx context.Context, answers Readiness
 
 // GetAssessmentSummary will return the summary of the assessments
 func (zt *ZeroTrust) GetReadinessAssessmentsSummary(ctx context.Context) ([]*AssessmentSummary, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "get-assessments-summary"
 	method := "GET"
 
@@ -141,10 +130,6 @@ func (zt *ZeroTrust) GetReadinessAssessmentsSummary(ctx context.Context) ([]*Ass
 
 // GetAssessments will return all the assessments
 func (zt *ZeroTrust) GetReadinessAssessments(ctx context.Context) ([]*ReadinessAnswers, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "get-assessments"
 	method := "GET"
 
@@ -165,11 +150,7 @@ func (zt *ZeroTrust) GetReadinessAssessments(ctx context.Context) ([]*ReadinessA
 
 // GetAssessmentByID will return the assessment with the given ID
 func (zt *ZeroTrust) GetReadinessAssessmentByID(ctx context.Context, assessmentID string) (*ReadinessAnswers, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	call := "get-assessment-by-id?id=" + assessmentID
+	call := "get-assessment-by-id?id=" + url.QueryEscape(assessmentID)
 	method := "GET"
 
 	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
@@ -189,11 +170,7 @@ func (zt *ZeroTrust) GetReadinessAssessmentByID(ctx context.Context, assessmentI
 
 // DeleteAssessmentByID will delete the assessment with the given ID
 func (zt *ZeroTrust) DeleteReadinessAssessmentByID(ctx context.Context, assessmentID string) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	call := "remove-assessment-by-id?id=" + assessmentID
+	call := "remove-assessment-by-id?id=" + url.QueryEscape(assessmentID)
 	method := "POST"
 
 	_, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
@@ -207,10 +184,6 @@ func (zt *ZeroTrust) DeleteReadinessAssessmentByID(ctx context.Context, assessme
 
 // DeleteAssessments will delete ALL assessments
 func (zt *ZeroTrust) DeleteReadinessAssessments(ctx context.Context) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	assessments, err := zt.GetReadinessAssessmentsSummary(ctx)
 
 	if err != nil {

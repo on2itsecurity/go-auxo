@@ -29,10 +29,6 @@ type Measure struct {
 // GetMeasures will get all measures of the relation (based on used API Token)
 // It returns an array with all the Measure objects.
 func (zt *ZeroTrust) GetMeasures(ctx context.Context) (*MeasureGroups, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "get-all-measures"
 	method := "GET"
 
