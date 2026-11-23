@@ -45,7 +45,7 @@ func NewAPIClient(address, token string, debug bool) (*APIClient, error) {
 	APIClient.config.tr = &http2.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: false},
 	}
-	APIClient.config.timeoutInSec = 5
+	APIClient.config.timeoutInSec = 30
 	APIClient.config.connMaxAge = 5 * time.Minute
 	APIClient.config.lastRefresh = time.Now()
 
@@ -60,17 +60,18 @@ func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data
 		c.config.tr.CloseIdleConnections()
 		c.config.lastRefresh = time.Now()
 	}
+	timeout := time.Duration(c.config.timeoutInSec) * time.Second
+	client := c.config.httpClient
 	c.config.mu.Unlock()
 
 	if ctx == nil {
 		// Use default timeout if no context provided
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), time.Duration(c.config.timeoutInSec)*time.Second)
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 	}
 
 	// Remove timeout from client - let context handle it
-	client := c.config.httpClient
 	if client == nil {
 		client = &http.Client{Transport: c.config.tr}
 	}
@@ -135,13 +136,18 @@ func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data
 	return body, nil
 }
 
-// SetTimeout - sets the default timeout used when context is nil
+// SetTimeout - sets the default timeout (per API call, 30 seconds unless set) used when context is nil
 func (c *APIClient) SetTimeout(seconds int) {
+	c.config.mu.Lock()
+	defer c.config.mu.Unlock()
 	c.config.timeoutInSec = seconds
 }
 
 // SetHTTPClient - replaces the default HTTP/2 client, f.e. to use a proxy or a test server.
 // The address is still prefixed with https://, the timeout is still controlled via the context.
+// The periodic refresh of idle connections only applies to the default client, not to a client set here.
 func (c *APIClient) SetHTTPClient(client *http.Client) {
+	c.config.mu.Lock()
+	defer c.config.mu.Unlock()
 	c.config.httpClient = client
 }

@@ -45,7 +45,7 @@ Version 2 introduces **breaking changes** that require code modifications when u
 **Migration from v1.x to v2.x:**
 1. Add `context` as the first parameter to all API calls
 2. Update your imports to include `"context"`
-3. Use `nil` for default behavior or pass your own context for custom timeout/cancellation
+3. Use `nil` for default behavior (a timeout of 30 seconds per API call, change it with `SetTimeout`) or pass your own context for custom timeout/cancellation
 
 **Before (v1.x):**
 ```go

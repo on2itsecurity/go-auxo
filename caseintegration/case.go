@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
@@ -34,7 +35,7 @@ type Case struct {
 
 // AddNoteToCase adds a note to an existing case
 func (ci *CaseIntegration) AddNoteToCase(ctx context.Context, caseID string, note string) error {
-	call := "integration/" + caseID + "/notes"
+	call := "integration/" + url.PathEscape(caseID) + "/notes"
 
 	method := "POST"
 
@@ -55,7 +56,7 @@ func (ci *CaseIntegration) AddNoteToCase(ctx context.Context, caseID string, not
 
 // AddAttachmentToCase adds an attachment to an existing case
 func (ci *CaseIntegration) AddAttachmentToCase(ctx context.Context, caseID string, attachment string) error {
-	call := "integration/" + caseID + "/attachments"
+	call := "integration/" + url.PathEscape(caseID) + "/attachments"
 
 	method := "POST"
 
@@ -97,7 +98,7 @@ func (ci *CaseIntegration) CreateCaseByObject(ctx context.Context, c Case) error
 
 // DeescalateCase deescalates an existing case
 func (ci *CaseIntegration) DeescalateCase(ctx context.Context, caseID string) error {
-	call := "integration/" + caseID + "/escalation-status"
+	call := "integration/" + url.PathEscape(caseID) + "/escalation-status"
 
 	method := "DELETE"
 
@@ -113,7 +114,7 @@ func (ci *CaseIntegration) DeescalateCase(ctx context.Context, caseID string) er
 
 // EscalateCase escalates an existing case
 func (ci *CaseIntegration) EscalateCase(ctx context.Context, caseID string) error {
-	call := "integration/" + caseID + "/escalation-status"
+	call := "integration/" + url.PathEscape(caseID) + "/escalation-status"
 
 	method := "PATCH"
 
@@ -129,7 +130,7 @@ func (ci *CaseIntegration) EscalateCase(ctx context.Context, caseID string) erro
 
 // GetCaseByID Get case by ID
 func (ci *CaseIntegration) GetCaseByID(ctx context.Context, caseID string) (*Case, error) {
-	call := "integration/" + caseID
+	call := "integration/" + url.PathEscape(caseID)
 
 	method := "GET"
 
@@ -161,7 +162,7 @@ func (ci *CaseIntegration) GetCases(ctx context.Context) ([]*Case, error) {
 
 // RequestCaseClose Requests the closure of an existing case
 func (ci *CaseIntegration) RequestCaseClose(ctx context.Context, caseID string) error {
-	call := "integration/" + caseID + "/request-close"
+	call := "integration/" + url.PathEscape(caseID) + "/request-close"
 
 	method := "POST"
 
@@ -177,7 +178,7 @@ func (ci *CaseIntegration) RequestCaseClose(ctx context.Context, caseID string) 
 
 // UpdatePrimaryContactOfCase updates the primary contact of an existing case
 func (ci *CaseIntegration) UpdatePrimaryContactOfCase(ctx context.Context, caseID string, email string) error {
-	call := "integration/" + caseID + "/primary-contact"
+	call := "integration/" + url.PathEscape(caseID) + "/primary-contact"
 
 	method := "PATCH"
 
@@ -198,7 +199,7 @@ func (ci *CaseIntegration) UpdatePrimaryContactOfCase(ctx context.Context, caseI
 
 // UpdatePriorityOfCase updates the priority (1-4) of an existing case
 func (ci *CaseIntegration) UpdatePriorityOfCase(ctx context.Context, caseID string, priority int) error {
-	call := "integration/" + caseID + "/priority"
+	call := "integration/" + url.PathEscape(caseID) + "/priority"
 
 	method := "PATCH"
 
@@ -219,7 +220,7 @@ func (ci *CaseIntegration) UpdatePriorityOfCase(ctx context.Context, caseID stri
 
 // UpdateSubjectOfCase updates the subject of an existing case
 func (ci *CaseIntegration) UpdateSubjectOfCase(ctx context.Context, caseID string, subject string) error {
-	call := "integration/" + caseID + "/subject"
+	call := "integration/" + url.PathEscape(caseID) + "/subject"
 
 	method := "PATCH"
 
