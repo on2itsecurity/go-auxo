@@ -26,7 +26,7 @@ func TestParseCompliance(t *testing.T) {
 	if pci.Name != "PCI DSS 4.0.1" || pci.Family != "PCI DSS" || pci.CompliantCount != 12 || pci.TotalCount != 20 || pci.Verdict {
 		t.Errorf("unexpected framework version %+v", pci)
 	}
-	if len(pci.Gaps) != 2 || pci.Gaps[1].Name != "data-backup" || pci.Gaps[1].FitnessState != "no_evidence_risk_accepted" {
+	if len(pci.Gaps) != 2 || pci.Gaps[1].Name != "data-backup" || pci.Gaps[1].FitnessState != FitnessNoEvidenceRiskAccepted {
 		t.Errorf("unexpected gaps %+v", pci.Gaps)
 	}
 	if len(pci.NotAssigned) != 1 || pci.NotAssigned[0] != "mfa" {
@@ -35,5 +35,12 @@ func TestParseCompliance(t *testing.T) {
 
 	if !compliance[1].Verdict || len(compliance[1].Gaps) != 0 {
 		t.Errorf("unexpected compliant framework version %+v", compliance[1])
+	}
+}
+
+func TestGetProtectSurfaceComplianceEmptyID(t *testing.T) {
+	zt := NewZeroTrust("api.example.com", "token", false)
+	if _, err := zt.GetProtectSurfaceCompliance(nil, ""); err == nil {
+		t.Errorf("an empty protect surface ID should fail before calling the API")
 	}
 }
