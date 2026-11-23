@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/on2itsecurity/go-auxo/v2/utils"
 )
@@ -27,10 +28,6 @@ type Coords struct {
 // CreateLocation will create a location object and passes it to the API.
 // It returns a Location object.
 func (zt *ZeroTrust) CreateLocation(ctx context.Context, name string, latitude float64, longitude float64, replace bool) (*Location, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	location := Location{
 		Name: name,
 		Coords: Coords{
@@ -51,10 +48,6 @@ func (zt *ZeroTrust) CreateLocation(ctx context.Context, name string, latitude f
 // CreateLocationByObject creates a location by passing a Location object
 // It returns a Location object.
 func (zt *ZeroTrust) CreateLocationByObject(ctx context.Context, location Location, replace bool) (*Location, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "create-location"
 	if replace {
 		call = "create-or-replace-location"
@@ -84,10 +77,6 @@ func (zt *ZeroTrust) CreateLocationByObject(ctx context.Context, location Locati
 
 // DeleteLocationsAll will delete ALL locations
 func (zt *ZeroTrust) DeleteLocations(ctx context.Context) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	locations, err := zt.GetLocations(ctx)
 
 	if err != nil {
@@ -106,11 +95,7 @@ func (zt *ZeroTrust) DeleteLocations(ctx context.Context) error {
 
 // DeleteLocationByID will delete the location
 func (zt *ZeroTrust) DeleteLocationByID(ctx context.Context, id string) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	call := "remove-location?id=" + id
+	call := "remove-location?id=" + url.QueryEscape(id)
 	method := "POST"
 
 	_, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
@@ -125,11 +110,7 @@ func (zt *ZeroTrust) DeleteLocationByID(ctx context.Context, id string) error {
 // GetLocationByID will get a location by ID
 // It returns a Location object.
 func (zt *ZeroTrust) GetLocationByID(ctx context.Context, locationID string) (*Location, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	call := "get-location?id=" + locationID
+	call := "get-location?id=" + url.QueryEscape(locationID)
 	method := "GET"
 
 	result, err := zt.apiClient.ApiCall(ctx, zt.apiEndpoint+call, method, "")
@@ -154,10 +135,6 @@ func (zt *ZeroTrust) GetLocationByID(ctx context.Context, locationID string) (*L
 // GetLocationsByRelationID will get all locations of the relation (based on used API Token)
 // It returns an array with all the Location objects.
 func (zt *ZeroTrust) GetLocations(ctx context.Context) ([]*Location, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "get-locations"
 	method := "GET"
 
@@ -179,10 +156,6 @@ func (zt *ZeroTrust) GetLocations(ctx context.Context) ([]*Location, error) {
 // UpdateLocation will update/replace existing location, but keeps the ID.
 // Returns the updated location
 func (zt *ZeroTrust) UpdateLocation(ctx context.Context, location Location) (*Location, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	result, err := zt.CreateLocationByObject(ctx, location, true)
 
 	if err != nil {

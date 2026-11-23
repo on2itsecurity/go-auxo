@@ -18,6 +18,7 @@ type apiConfig struct {
 	address      string
 	token        string
 	tr           *http2.Transport
+	httpClient   *http.Client //Replaces the default client (based on tr) when set
 	debug        bool
 	contentType  string
 	timeoutInSec int
@@ -69,7 +70,10 @@ func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data
 	}
 
 	// Remove timeout from client - let context handle it
-	client := &http.Client{Transport: c.config.tr}
+	client := c.config.httpClient
+	if client == nil {
+		client = &http.Client{Transport: c.config.tr}
+	}
 	debug := c.config.debug
 
 	address := "https://" + c.config.address + uri
@@ -102,6 +106,7 @@ func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data
 		}
 		return []byte{}, err
 	}
+	defer response.Body.Close()
 
 	body, err = io.ReadAll(response.Body)
 
@@ -111,9 +116,6 @@ func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data
 		}
 		return body, err
 	}
-
-	defer req.Body.Close()
-	defer response.Body.Close()
 
 	if debug {
 		fmt.Printf("Response code: %d\n", response.StatusCode)
@@ -136,4 +138,10 @@ func (c *APIClient) ApiCall(ctx context.Context, uri string, method string, data
 // SetTimeout - sets the default timeout used when context is nil
 func (c *APIClient) SetTimeout(seconds int) {
 	c.config.timeoutInSec = seconds
+}
+
+// SetHTTPClient - replaces the default HTTP/2 client, f.e. to use a proxy or a test server.
+// The address is still prefixed with https://, the timeout is still controlled via the context.
+func (c *APIClient) SetHTTPClient(client *http.Client) {
+	c.config.httpClient = client
 }

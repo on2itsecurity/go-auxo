@@ -164,10 +164,6 @@ const historyPageSize = 500
 // with every version recorded at or after from (no upper bound).
 // All pages are requested and merged, consider passing a context with a generous timeout for an early from.
 func (zt *ZeroTrust) GetHistory(ctx context.Context, from time.Time) (*History, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	ts := from.Unix()
 	if ts < 0 {
 		ts = 0

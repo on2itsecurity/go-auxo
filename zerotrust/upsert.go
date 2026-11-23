@@ -30,10 +30,6 @@ type UpsertState struct {
 // and inserts the location and the protectsurface (and never update it if it already exists),
 // and replaces the state in its entirety every time
 func (zt *ZeroTrust) UpsertByObject(ctx context.Context, upsert Upsert) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "upsert-protectsurface-location-state"
 	method := "POST"
 

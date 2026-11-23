@@ -20,10 +20,6 @@ type AssetItem struct {
 // GetAssets will get all assets of the relation (based on used API Token)
 // It returns an array with all the AssetItem objects.
 func (asset *Asset) GetAssets(ctx context.Context) ([]*AssetItem, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "get-assets"
 	method := "GET"
 

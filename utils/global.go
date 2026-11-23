@@ -45,10 +45,6 @@ func UnwrapItems[T any](jsonAsByte []byte) ([]*T, error) {
 // input is the apicall, method and client
 // returns a slice of items
 func GetAllPages[T any](ctx context.Context, apiCall, method string, apiClient *apiclient.APIClient) ([]*T, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	page := 1
 	lastCount := 0
 	items := make([]*T, 0)

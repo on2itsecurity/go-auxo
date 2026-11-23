@@ -28,10 +28,6 @@ type Contact struct {
 // GetContacts will get all contacts of the relation (based on used API Token)
 // It returns an array with all the Location objects.
 func (crm *CRM) GetContacts(ctx context.Context) ([]*Contact, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	call := "get-people"
 	method := "GET"
 
